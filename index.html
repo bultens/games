@@ -133,9 +133,9 @@
             score = 0;
             gameSpeed = INITIAL_SPEED;
             isGameOver = false;
-            isGameStarted = true; // Sätts till true här för att undvika problem med tangentbordsinput
+            isGameStarted = false; // VIKTIG FIX: isGameStarted ska vara false vid initialisering
             scoreElement.innerText = score;
-            startButton.innerText = 'Spelar...';
+            startButton.innerText = 'Starta spel';
             render();
         }
 
@@ -296,6 +296,8 @@
             if (!isGameStarted) {
                 initializeGame();
                 gameLoop = setInterval(update, gameSpeed);
+                isGameStarted = true; // VIKTIG FIX: Sätt isGameStarted till true här!
+                startButton.innerText = 'Spelar...';
             }
         });
 
