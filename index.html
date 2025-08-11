@@ -42,7 +42,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, updateDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Globala variabler från Canvas-miljön
         const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
@@ -159,16 +159,17 @@
             if (!db || isSavingScore || userScore === 0) return;
             isSavingScore = true;
             try {
-                // Skapa en fråga för att se om spelaren redan finns
-                const q = query(highscoresCollection, where("name", "==", name));
-                const querySnapshot = await getDocs(q);
+                // Använd spelarens namn som dokument-ID för att säkerställa att varje spelare
+                // bara har en post
+                const docRef = doc(highscoresCollection, name);
+                const docSnap = await getDoc(docRef);
 
-                if (!querySnapshot.empty) {
-                    // Om spelaren finns, uppdatera poängen om den nya poängen är högre
-                    const existingDoc = querySnapshot.docs[0];
-                    if (userScore > existingDoc.data().score) {
-                        const docRef = doc(db, highscoresCollection.path, existingDoc.id);
-                        await updateDoc(docRef, {
+                if (docSnap.exists()) {
+                    // Spelaren finns, uppdatera poängen om den nya är högre
+                    const existingScore = docSnap.data().score;
+                    if (userScore > existingScore) {
+                        await setDoc(docRef, {
+                            name: name,
                             score: userScore,
                             timestamp: serverTimestamp()
                         });
@@ -177,8 +178,8 @@
                         console.log("Ny poäng är inte högre, poängen uppdaterades inte.");
                     }
                 } else {
-                    // Om spelaren inte finns, skapa en ny post
-                    await addDoc(highscoresCollection, {
+                    // Spelaren finns inte, skapa en ny post
+                    await setDoc(docRef, {
                         name: name,
                         score: userScore,
                         timestamp: serverTimestamp()
