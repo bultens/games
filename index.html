@@ -79,6 +79,11 @@
             transform: translateY(0);
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
+        #controls-info {
+            font-size: 0.9rem;
+            color: #bdc3c7;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -87,53 +92,54 @@
         <canvas id="gameCanvas"></canvas>
         <div id="score-container">Poäng: <span id="score">0</span></div>
         <button id="startButton">Starta spel</button>
+        <p id="controls-info">Tryck på "Starta spel" och styr med piltangenterna.</p>
     </div>
 
     <script>
-        // Game constants
-        const CANVAS_SIZE = 400; // Total canvas size in pixels
-        const GRID_SIZE = 20; // Number of grid cells (e.g., 20x20)
-        const CELL_SIZE = CANVAS_SIZE / GRID_SIZE; // Size of each cell
-        const INITIAL_SPEED = 150; // Initial game speed in milliseconds (lower is faster)
-        const SPEED_INCREMENT = 5; // How much to decrease the speed each time the snake eats
+        // Spelkonstanter
+        const CANVAS_SIZE = 400; // Total storlek på canvas i pixlar
+        const GRID_SIZE = 20; // Antal rutnätsceller (t.ex. 20x20)
+        const CELL_SIZE = CANVAS_SIZE / GRID_SIZE; // Storlek på varje cell
+        const INITIAL_SPEED = 150; // Initial spelhastighet i millisekunder (lägre är snabbare)
+        const SPEED_INCREMENT = 5; // Hur mycket hastigheten minskar varje gång ormen äter
 
-        // Game state variables
+        // Speltillståndsvariabler
         let snake = [];
         let food = {};
-        let direction = { x: 0, y: 0 };
+        let direction = { x: 1, y: 0 }; 
         let score = 0;
         let gameSpeed = INITIAL_SPEED;
         let gameLoop = null;
         let isGameOver = false;
         let isGameStarted = false;
 
-        // Get DOM elements
+        // Hämta DOM-element
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const startButton = document.getElementById('startButton');
 
-        // Set up the canvas dimensions
+        // Ställ in canvas-dimensioner
         canvas.width = CANVAS_SIZE;
         canvas.height = CANVAS_SIZE;
 
-        // --- Game Logic Functions ---
+        // --- Spellogikfunktioner ---
 
-        // Initialize the game state
+        // Initiera spelets tillstånd
         function initializeGame() {
-            snake = [{ x: 10, y: 10 }]; // Start with one snake segment in the center
+            snake = [{ x: 10, y: 10 }]; // Starta med ett ormsegment i mitten
             food = generateFood();
-            direction = { x: 0, y: 0 };
+            direction = { x: 1, y: 0 }; // Återställ riktning vid omstart
             score = 0;
             gameSpeed = INITIAL_SPEED;
             isGameOver = false;
-            isGameStarted = false;
+            isGameStarted = true; // Sätts till true här för att undvika problem med tangentbordsinput
             scoreElement.innerText = score;
-            startButton.innerText = 'Starta spel';
+            startButton.innerText = 'Spelar...';
             render();
         }
 
-        // Generate new food at a random position
+        // Generera ny mat på en slumpmässig position
         function generateFood() {
             let newFood;
             do {
@@ -141,74 +147,74 @@
                     x: Math.floor(Math.random() * GRID_SIZE),
                     y: Math.floor(Math.random() * GRID_SIZE)
                 };
-            } while (isPositionOnSnake(newFood)); // Ensure food doesn't spawn on the snake
+            } while (isPositionOnSnake(newFood)); // Se till att mat inte hamnar på ormen
             return newFood;
         }
 
-        // Check if a given position is on the snake's body
+        // Kontrollera om en given position är på ormens kropp
         function isPositionOnSnake(pos) {
             return snake.some(segment => segment.x === pos.x && segment.y === pos.y);
         }
 
-        // Main game update function (called in a loop)
+        // Huvudfunktion för speluppdatering (anropas i en loop)
         function update() {
             if (isGameOver) {
                 return;
             }
 
-            // Move the snake by creating a new head
+            // Flytta ormen genom att skapa ett nytt huvud
             const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
-            // Check for game over conditions
+            // Kontrollera om spelet är över
             if (
-                head.x < 0 || head.x >= GRID_SIZE || // Wall collision
+                head.x < 0 || head.x >= GRID_SIZE || // Kollision med vägg
                 head.y < 0 || head.y >= GRID_SIZE ||
-                isPositionOnSnake(head) // Self collision
+                isPositionOnSnake(head) // Kollision med sig själv
             ) {
                 endGame();
                 return;
             }
 
-            // Add the new head to the beginning of the snake array
+            // Lägg till det nya huvudet i början av ormens array
             snake.unshift(head);
 
-            // Check if the snake ate the food
+            // Kontrollera om ormen åt maten
             if (head.x === food.x && head.y === food.y) {
                 score++;
                 scoreElement.innerText = score;
                 food = generateFood();
-                // Speed up the game
+                // Öka hastigheten
                 gameSpeed = Math.max(50, gameSpeed - SPEED_INCREMENT);
-                // Restart the game loop with the new speed
+                // Starta om spelets loop med den nya hastigheten
                 clearInterval(gameLoop);
                 gameLoop = setInterval(update, gameSpeed);
             } else {
-                // If not, remove the tail to simulate movement
+                // Annars, ta bort svansen för att simulera rörelse
                 snake.pop();
             }
 
             render();
         }
 
-        // Render the game state to the canvas
+        // Rita spelets tillstånd på canvas
         function render() {
-            // Clear the canvas
+            // Rensa canvas
             ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-            // Draw the food
+            // Rita maten
             ctx.fillStyle = '#e74c3c';
             ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
             
-            // Draw the snake
+            // Rita ormen
             snake.forEach((segment, index) => {
-                ctx.fillStyle = index === 0 ? '#1abc9c' : '#16a085'; // Head is a different color
+                ctx.fillStyle = index === 0 ? '#1abc9c' : '#16a085'; // Huvudet har en annan färg
                 ctx.fillRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                ctx.strokeStyle = '#2c3e50'; // Border for segments
+                ctx.strokeStyle = '#2c3e50'; // Kantlinje för segmenten
                 ctx.strokeRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
             });
         }
 
-        // End the game and display a message
+        // Avsluta spelet och visa ett meddelande
         function endGame() {
             isGameOver = true;
             isGameStarted = false;
@@ -217,7 +223,7 @@
             alertMessage('Game Over!', `Dina poäng: ${score}`);
         }
 
-        // Custom alert function since window.alert() is blocked
+        // Anpassad varningsfunktion eftersom window.alert() är blockerad
         function alertMessage(title, message) {
             const container = document.getElementById('game-container');
             let messageBox = document.getElementById('messageBox');
@@ -250,53 +256,53 @@
             `;
             messageBox.style.display = 'block';
 
-            // Hide the message box on the next game start
+            // Dölj meddelandefältet vid nästa spelstart
             startButton.addEventListener('click', () => {
                 messageBox.style.display = 'none';
             }, { once: true });
         }
 
 
-        // --- Event Listeners and Game Initialization ---
+        // --- Händelselyssnare och spelinitiering ---
 
-        // Handle keyboard input for snake direction
+        // Hantera tangentbordsinmatning för ormens riktning
         function handleKeydown(event) {
+            // Kontrollera att spelet är igång innan vi hanterar input
             if (!isGameStarted || isGameOver) return;
             
             const key = event.key;
-            const newDirection = { ...direction }; // Create a copy to avoid immediate change
+            const newDirection = { x: direction.x, y: direction.y }; // Skapa en kopia av riktningen
 
             switch (key) {
                 case 'ArrowUp':
-                    if (direction.y !== 1) newDirection.x = 0, newDirection.y = -1;
+                    if (direction.y !== 1) { newDirection.x = 0; newDirection.y = -1; }
                     break;
                 case 'ArrowDown':
-                    if (direction.y !== -1) newDirection.x = 0, newDirection.y = 1;
+                    if (direction.y !== -1) { newDirection.x = 0; newDirection.y = 1; }
                     break;
                 case 'ArrowLeft':
-                    if (direction.x !== 1) newDirection.x = -1, newDirection.y = 0;
+                    if (direction.x !== 1) { newDirection.x = -1; newDirection.y = 0; }
                     break;
                 case 'ArrowRight':
-                    if (direction.x !== -1) newDirection.x = 1, newDirection.y = 0;
+                    if (direction.x !== -1) { newDirection.x = 1; newDirection.y = 0; }
                     break;
             }
+            // Uppdatera den globala riktningsvariabeln
             direction = newDirection;
         }
 
-        // Start button handler
+        // Startknappens hanterare
         startButton.addEventListener('click', () => {
             if (!isGameStarted) {
-                isGameStarted = true;
                 initializeGame();
-                startButton.innerText = 'Spelar...';
                 gameLoop = setInterval(update, gameSpeed);
             }
         });
 
-        // Add event listener for keyboard input
+        // Lägg till händelselyssnare för tangentbordsinmatning
         document.addEventListener('keydown', handleKeydown);
 
-        // Initial setup on window load
+        // Initial installation vid fönsterladdning
         window.onload = function() {
             initializeGame();
         };
