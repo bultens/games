@@ -71,7 +71,7 @@
             font-weight: bold;
             color: #fff;
             background-color: #3498db;
-            border: none;
+            border: 2px solid #556a7d;
             border-radius: 8px;
             cursor: pointer;
             transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
@@ -295,16 +295,21 @@
 
         // Initiera spelets tillstånd
         function initializeGame() {
-            snake = [{ x: 10, y: 10 }]; // Starta med ett ormsegment i mitten
+            snake = [{ x: 10, y: 10 }];
             food = generateFood();
-            direction = { x: 1, y: 0 }; // Återställ riktning vid omstart
+            direction = { x: 1, y: 0 };
             score = 0;
             gameSpeed = INITIAL_SPEED;
             isGameOver = false;
-            isGameStarted = false; 
+            isGameStarted = false;
             scoreElement.innerText = score;
             startButton.innerText = 'Starta spel';
             controlsInfo.style.display = 'block';
+            
+            const scoreForm = document.getElementById('score-form');
+            if (scoreForm) {
+                scoreForm.remove();
+            }
             render();
         }
 
@@ -316,7 +321,7 @@
                     x: Math.floor(Math.random() * GRID_SIZE),
                     y: Math.floor(Math.random() * GRID_SIZE)
                 };
-            } while (isPositionOnSnake(newFood)); // Se till att mat inte hamnar på ormen
+            } while (isPositionOnSnake(newFood));
             return newFood;
         }
 
@@ -331,34 +336,27 @@
                 return;
             }
 
-            // Flytta ormen genom att skapa ett nytt huvud
             const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
 
-            // Kontrollera om spelet är över
             if (
-                head.x < 0 || head.x >= GRID_SIZE || // Kollision med vägg
+                head.x < 0 || head.x >= GRID_SIZE ||
                 head.y < 0 || head.y >= GRID_SIZE ||
-                isPositionOnSnake(head) // Kollision med sig själv
+                isPositionOnSnake(head)
             ) {
                 endGame();
                 return;
             }
 
-            // Lägg till det nya huvudet i början av ormens array
             snake.unshift(head);
 
-            // Kontrollera om ormen åt maten
             if (head.x === food.x && head.y === food.y) {
                 score++;
                 scoreElement.innerText = score;
                 food = generateFood();
-                // Öka hastigheten
                 gameSpeed = Math.max(50, gameSpeed - SPEED_INCREMENT);
-                // Starta om spelets loop med den nya hastigheten
                 clearInterval(gameLoop);
                 gameLoop = setInterval(update, gameSpeed);
             } else {
-                // Annars, ta bort svansen för att simulera rörelse
                 snake.pop();
             }
 
@@ -367,18 +365,15 @@
 
         // Rita spelets tillstånd på canvas
         function render() {
-            // Rensa canvas
             ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-            // Rita maten
             ctx.fillStyle = '#e74c3c';
             ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
             
-            // Rita ormen
             snake.forEach((segment, index) => {
-                ctx.fillStyle = index === 0 ? '#1abc9c' : '#16a085'; // Huvudet har en annan färg
+                ctx.fillStyle = index === 0 ? '#1abc9c' : '#16a085';
                 ctx.fillRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                ctx.strokeStyle = '#2c3e50'; // Kantlinje för segmenten
+                ctx.strokeStyle = '#2c3e50';
                 ctx.strokeRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
             });
         }
@@ -386,7 +381,6 @@
         // Avsluta spelet och visa ett meddelande
         function endGame() {
             isGameOver = true;
-            isGameStarted = false;
             clearInterval(gameLoop);
             startButton.innerText = 'Spela igen';
             showScoreForm(score);
@@ -412,7 +406,8 @@
                     if (name) {
                         await saveHighScore(name, finalScore);
                         scoreForm.remove();
-                        initializeGame();
+                        // Återställ spelstatusen så att nästa omgång kan starta
+                        isGameStarted = false; 
                     } else {
                         playerNameInput.style.border = '2px solid red';
                     }
@@ -425,11 +420,10 @@
 
         // Hantera tangentbordsinmatning för ormens riktning
         function handleKeydown(event) {
-            // Kontrollera att spelet är igång innan vi hanterar input
             if (!isGameStarted || isGameOver) return;
             
             const key = event.key;
-            const newDirection = { x: direction.x, y: direction.y }; // Skapa en kopia av riktningen
+            const newDirection = { x: direction.x, y: direction.y };
 
             switch (key) {
                 case 'ArrowUp':
@@ -445,7 +439,6 @@
                     if (direction.x !== -1) { newDirection.x = 1; newDirection.y = 0; }
                     break;
             }
-            // Uppdatera den globala riktningsvariabeln
             direction = newDirection;
         }
 
@@ -460,10 +453,8 @@
             }
         });
 
-        // Lägg till händelselyssnare för tangentbordsinmatning
         document.addEventListener('keydown', handleKeydown);
 
-        // Initial installation vid fönsterladdning
         window.onload = function() {
             window.authenticate().then(() => {
                 loadHighScores();
