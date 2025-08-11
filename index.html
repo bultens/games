@@ -42,7 +42,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Globala variabler från Canvas-miljön
         const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
@@ -159,30 +159,31 @@
             if (!db || isSavingScore || userScore === 0) return;
             isSavingScore = true;
             try {
-                // Använd exponential backoff för att hantera API-anrop
-                let retries = 0;
-                const maxRetries = 5;
-                const baseDelay = 1000; // 1 sekund
-                
-                while (retries < maxRetries) {
-                    try {
-                        await addDoc(highscoresCollection, {
-                            name: name,
+                // Skapa en fråga för att se om spelaren redan finns
+                const q = query(highscoresCollection, where("name", "==", name));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // Om spelaren finns, uppdatera poängen om den nya poängen är högre
+                    const existingDoc = querySnapshot.docs[0];
+                    if (userScore > existingDoc.data().score) {
+                        const docRef = doc(db, highscoresCollection.path, existingDoc.id);
+                        await updateDoc(docRef, {
                             score: userScore,
                             timestamp: serverTimestamp()
                         });
-                        console.log("Poäng sparad!");
-                        break; // Avsluta loopen vid lyckat anrop
-                    } catch (e) {
-                        retries++;
-                        const delay = baseDelay * Math.pow(2, retries);
-                        console.warn(`Försök ${retries} misslyckades. Väntar ${delay}ms...`);
-                        await new Promise(res => setTimeout(res, delay));
-                        if (retries === maxRetries) {
-                            console.error("Max antal försök nått. Fel vid sparande av poäng:", e);
-                            throw e;
-                        }
+                        console.log("Poäng uppdaterad!");
+                    } else {
+                        console.log("Ny poäng är inte högre, poängen uppdaterades inte.");
                     }
+                } else {
+                    // Om spelaren inte finns, skapa en ny post
+                    await addDoc(highscoresCollection, {
+                        name: name,
+                        score: userScore,
+                        timestamp: serverTimestamp()
+                    });
+                    console.log("Ny poäng sparad!");
                 }
             } catch (e) {
                 console.error("Fel vid sparande av poäng:", e);
@@ -190,6 +191,7 @@
                 isSavingScore = false;
             }
         }
+
 
         // Renderar topplistan i HTML
         function renderHighScores(scores) {
