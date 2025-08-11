@@ -42,47 +42,46 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit, getDocs, where, updateDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Globala variabler från Canvas-miljön
-        const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : null;
-        const canvasAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // --- Klistra in din egen Firebase-konfiguration här för att köra spelet utanför Canvas-miljön ---
-        // Du hittar denna information i ditt Firebase-projekt under "Project settings" -> "Your apps".
-        // Om du kör i Canvas, kommer den här konfigurationen att ignoreras.
-        const customFirebaseConfig = {
-            apiKey: "AIzaSyA_E4M8WPU3qrrWtW8fOkSJEM46sylRyzk",
-            authDomain: "snake-6dbce.firebaseapp.com",
-            projectId: "snake-6dbce",
-            storageBucket: "snake-6dbce.firebasestorage.app",
-            messagingSenderId: "322128334339",
-            appId: "1:322128334339:web:f9815a73fb71ab75eb8836",
-            measurementId: "G-QS1QW6ZZJ0"
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            // Placeholder för din Firebase-konfiguration om du kör koden utanför Canvas
+            apiKey: "DITT_API_NYCKEL",
+            authDomain: "DITT_AUTH_DOMÄN",
+            projectId: "DITT_PROJEKT_ID",
+            storageBucket: "DITT_STORAGE_BUCKET",
+            messagingSenderId: "DITT_MESSAGING_SENDER_ID",
+            appId: "DITT_APP_ID"
         };
-        // ------------------------------------------------------------------------------------------
-
-        // Använd Canvas-konfiguration om den finns, annars den anpassade
-        const firebaseConfig = canvasFirebaseConfig || customFirebaseConfig;
-        const appId = canvasAppId || customFirebaseConfig.appId;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Initiera Firebase
         let app;
         let auth;
         let db;
+        let userId;
         let highscoresCollection;
 
-        function initializeFirebase() {
+        async function initializeFirebase() {
             try {
-                if (!firebaseConfig.projectId || firebaseConfig.projectId === "DITT_PROJEKT_ID_HÄR") {
-                     console.error("Firebase-konfiguration saknas. Vänligen klistra in din konfiguration för att spelet ska fungera på GitHub.");
-                     return false;
-                }
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                
+                // Använd en anpassad autentiseringstoken om den finns, annars logga in anonymt
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // Sätt userId baserat på den autentiserade användaren eller en slumpmässig UUID
+                userId = auth.currentUser?.uid || crypto.randomUUID();
                 highscoresCollection = collection(db, `artifacts/${appId}/public/data/highscores`);
+                
+                console.log("Firebase initialiserad och användare autentiserad.");
                 return true;
             } catch (e) {
                 console.error("Kunde inte initiera Firebase:", e);
@@ -90,21 +89,92 @@
             }
         }
 
-        // Autentiserar användaren
-        async function authenticate() {
+        // --- Databasfunktioner ---
+        
+        // Lyssnar på ändringar i databasen och uppdaterar topplistan
+        function loadHighScores() {
+            if (!db) {
+                console.warn("Firebase är inte initialiserat. Topplistan kan inte laddas.");
+                return;
+            }
+            // Lyssnar på alla dokument i samlingen
+            onSnapshot(highscoresCollection, (querySnapshot) => {
+                const scores = [];
+                querySnapshot.forEach((doc) => {
+                    scores.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sortera poängen lokalt i JavaScript
+                scores.sort((a, b) => b.score - a.score);
+
+                renderHighScores(scores);
+            }, (error) => {
+                console.error("Fel vid laddning av poäng:", error);
+            });
+        }
+
+        // Sparar en ny poäng i databasen
+        async function saveHighScore(name, userScore) {
+            if (!db || userScore === 0) return;
+
             try {
-                if (canvasAuthToken) {
-                    await signInWithCustomToken(auth, canvasAuthToken);
+                // Använder userId som dokument-ID för att säkerställa att varje användare har ett unikt dokument
+                const docRef = doc(highscoresCollection, userId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    // Spelaren finns, uppdatera poängen om den nya är högre
+                    if (userScore > docSnap.data().score) {
+                        await setDoc(docRef, {
+                            name: name,
+                            score: userScore,
+                            userId: userId
+                        });
+                        console.log("Poäng uppdaterad!");
+                    } else {
+                        console.log("Ny poäng är inte högre, poängen uppdaterades inte.");
+                    }
                 } else {
-                    await signInAnonymously(auth);
+                    // Spelaren finns inte, skapa en ny post
+                    await setDoc(docRef, {
+                        name: name,
+                        score: userScore,
+                        userId: userId
+                    });
+                    console.log("Ny poäng sparad!");
                 }
-            } catch (error) {
-                console.error("Autentisering misslyckades", error);
+            } catch (e) {
+                console.error("Fel vid sparande av poäng:", e);
             }
         }
-        
+
+        // Renderar topplistan i HTML
+        function renderHighScores(scores) {
+            highscoreList.innerHTML = '';
+            if (scores.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'bg-[#2c3e50] p-3 rounded-lg mb-2 text-lg text-center shadow';
+                li.innerText = 'Inga poäng än';
+                highscoreList.appendChild(li);
+                return;
+            }
+            scores.slice(0, 10).forEach((scoreData, index) => { // Visa bara de 10 bästa
+                const li = document.createElement('li');
+                let colorClass = 'text-white';
+                if (index === 0) colorClass = 'text-yellow-400';
+                else if (index === 1) colorClass = 'text-gray-400';
+                else if (index === 2) colorClass = 'text-amber-700';
+
+                li.className = `bg-[#2c3e50] p-3 rounded-lg mb-2 flex justify-between items-center text-lg font-bold shadow ${colorClass}`;
+                li.innerHTML = `<span>${scoreData.name}</span><span>${scoreData.score}</span>`;
+                highscoreList.appendChild(li);
+            });
+        }
+
+        // --- Spellogikfunktioner ---
+
         // Spelkonstanter
-        const CANVAS_SIZE = 400; 
+        const CANVAS_SIZE = 400;
         const GRID_SIZE = 20;
         const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
         const INITIAL_SPEED = 150;
@@ -119,7 +189,6 @@
         let gameLoop = null;
         let isGameOver = false;
         let isGameStarted = false;
-        let isSavingScore = false;
 
         // Hämta DOM-element
         const canvas = document.getElementById('gameCanvas');
@@ -129,94 +198,9 @@
         const controlsInfo = document.getElementById('controls-info');
         const highscoreList = document.getElementById('highscore-list');
         const gameContainer = document.getElementById('game-container');
-
-        // Ställ in canvas-dimensioner
+        
         canvas.width = CANVAS_SIZE;
         canvas.height = CANVAS_SIZE;
-
-        // --- Databasfunktioner ---
-        
-        // Lyssnar på ändringar i databasen och uppdaterar topplistan
-        function loadHighScores() {
-            if (!db) {
-                console.warn("Firebase är inte initialiserat. Topplistan kan inte laddas.");
-                return;
-            }
-            const q = query(highscoresCollection, orderBy('score', 'desc'), limit(10));
-            onSnapshot(q, (querySnapshot) => {
-                const scores = [];
-                querySnapshot.forEach((doc) => {
-                    scores.push({ ...doc.data(), id: doc.id });
-                });
-                renderHighScores(scores);
-            }, (error) => {
-                console.error("Fel vid laddning av poäng:", error);
-            });
-        }
-
-        // Sparar en ny poäng i databasen
-        async function saveHighScore(name, userScore) {
-            if (!db || isSavingScore || userScore === 0) return;
-            isSavingScore = true;
-            try {
-                // Skapa en fråga för att se om spelaren redan finns
-                const q = query(highscoresCollection, where("name", "==", name));
-                const querySnapshot = await getDocs(q);
-                
-                if (!querySnapshot.empty) {
-                    // Spelaren finns, uppdatera poängen om den nya är högre
-                    const existingDoc = querySnapshot.docs[0];
-                    if (userScore > existingDoc.data().score) {
-                        const docRef = doc(highscoresCollection, existingDoc.id);
-                        await updateDoc(docRef, {
-                            score: userScore,
-                            timestamp: serverTimestamp()
-                        });
-                        console.log("Poäng uppdaterad!");
-                    } else {
-                        console.log("Ny poäng är inte högre, poängen uppdaterades inte.");
-                    }
-                } else {
-                    // Spelaren finns inte, skapa en ny post
-                    await addDoc(highscoresCollection, {
-                        name: name,
-                        score: userScore,
-                        timestamp: serverTimestamp()
-                    });
-                    console.log("Ny poäng sparad!");
-                }
-            } catch (e) {
-                console.error("Fel vid sparande av poäng:", e);
-            } finally {
-                isSavingScore = false;
-            }
-        }
-
-
-        // Renderar topplistan i HTML
-        function renderHighScores(scores) {
-            highscoreList.innerHTML = '';
-            if (scores.length === 0) {
-                const li = document.createElement('li');
-                li.className = 'bg-[#2c3e50] p-3 rounded-lg mb-2 text-lg text-center shadow';
-                li.innerText = 'Inga poäng än';
-                highscoreList.appendChild(li);
-                return;
-            }
-            scores.forEach((scoreData, index) => {
-                const li = document.createElement('li');
-                let colorClass = 'text-white';
-                if (index === 0) colorClass = 'text-yellow-400';
-                else if (index === 1) colorClass = 'text-gray-400';
-                else if (index === 2) colorClass = 'text-amber-700';
-
-                li.className = `bg-[#2c3e50] p-3 rounded-lg mb-2 flex justify-between items-center text-lg font-bold shadow ${colorClass}`;
-                li.innerHTML = `<span>${scoreData.name}</span><span>${scoreData.score}</span>`;
-                highscoreList.appendChild(li);
-            });
-        }
-
-        // --- Spellogikfunktioner ---
 
         // Initierar spelets tillstånd
         function initializeGame() {
@@ -325,13 +309,13 @@
                 `;
                 gameContainer.appendChild(scoreForm);
 
-                document.getElementById('saveScoreButton').addEventListener('click', async () => {
+                document.getElementById('saveScoreButton').addEventListener('click', () => {
                     const playerNameInput = document.getElementById('playerName');
                     const name = playerNameInput.value.trim();
                     if (name) {
-                        await saveHighScore(name, finalScore);
+                        saveHighScore(name, finalScore);
                         scoreForm.remove();
-                        isGameStarted = false; 
+                        isGameStarted = false;
                         startButton.innerText = 'Starta spel';
                         controlsInfo.style.display = 'block';
                     } else {
@@ -345,7 +329,6 @@
 
         // Hanterar tangentbordsinmatning
         function handleKeydown(event) {
-            // Kontrollera om spelet är igång och inte över
             if (!isGameStarted || isGameOver) return;
             
             const key = event.key;
@@ -365,15 +348,13 @@
                     if (direction.x !== -1) { newDirection = { x: 1, y: 0 }; }
                     break;
             }
-            // Uppdatera endast om det är en ny, giltig riktning
             if (newDirection.x !== direction.x || newDirection.y !== direction.y) {
-                 direction = newDirection;
+                direction = newDirection;
             }
         }
 
         // Startknappens hanterare
         startButton.addEventListener('click', () => {
-            // Starta eller starta om spelet om det inte är igång
             if (!isGameStarted) {
                 isGameStarted = true;
                 initializeGame();
@@ -381,7 +362,6 @@
                 controlsInfo.style.display = 'none';
                 gameLoop = setInterval(update, gameSpeed);
             } else if (isGameOver) {
-                 // Om spelet är slut, starta om
                 isGameStarted = true;
                 initializeGame();
                 gameLoop = setInterval(update, gameSpeed);
@@ -396,12 +376,9 @@
         // Körs när fönstret laddats
         window.onload = function() {
             if (initializeFirebase()) {
-                authenticate().then(() => {
-                    loadHighScores();
-                    initializeGame();
-                });
+                loadHighScores();
+                initializeGame();
             } else {
-                // Visa ett meddelande till användaren om Firebase-konfigurationen saknas
                 const highscoreContainer = document.getElementById('highscore-container');
                 const errorMessage = document.createElement('p');
                 errorMessage.className = 'text-center text-red-500 mt-4 font-bold';
