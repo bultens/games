@@ -52,15 +52,15 @@
         // --- Klistra in din egen Firebase-konfiguration här för att köra spelet utanför Canvas-miljön ---
         // Du hittar denna information i ditt Firebase-projekt under "Project settings" -> "Your apps".
         // Om du kör i Canvas, kommer den här konfigurationen att ignoreras.
-const firebaseConfig = {
-  apiKey: "AIzaSyA_E4M8WPU3qrrWtW8fOkSJEM46sylRyzk",
-  authDomain: "snake-6dbce.firebaseapp.com",
-  projectId: "snake-6dbce",
-  storageBucket: "snake-6dbce.firebasestorage.app",
-  messagingSenderId: "322128334339",
-  appId: "1:322128334339:web:f9815a73fb71ab75eb8836",
-  measurementId: "G-QS1QW6ZZJ0"
-};
+        const customFirebaseConfig = {
+            apiKey: "AIzaSyA_E4M8WPU3qrrWtW8fOkSJEM46sylRyzk",
+            authDomain: "snake-6dbce.firebaseapp.com",
+            projectId: "snake-6dbce",
+            storageBucket: "snake-6dbce.firebasestorage.app",
+            messagingSenderId: "322128334339",
+            appId: "1:322128334339:web:f9815a73fb71ab75eb8836",
+            measurementId: "G-QS1QW6ZZJ0"
+        };
         // ------------------------------------------------------------------------------------------
 
         // Använd Canvas-konfiguration om den finns, annars den anpassade
