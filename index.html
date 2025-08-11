@@ -159,17 +159,16 @@
             if (!db || isSavingScore || userScore === 0) return;
             isSavingScore = true;
             try {
-                // Använd spelarens namn som dokument-ID för att säkerställa att varje spelare
-                // bara har en post
-                const docRef = doc(highscoresCollection, name);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
+                // Skapa en fråga för att se om spelaren redan finns
+                const q = query(highscoresCollection, where("name", "==", name));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
                     // Spelaren finns, uppdatera poängen om den nya är högre
-                    const existingScore = docSnap.data().score;
-                    if (userScore > existingScore) {
-                        await setDoc(docRef, {
-                            name: name,
+                    const existingDoc = querySnapshot.docs[0];
+                    if (userScore > existingDoc.data().score) {
+                        const docRef = doc(highscoresCollection, existingDoc.id);
+                        await updateDoc(docRef, {
                             score: userScore,
                             timestamp: serverTimestamp()
                         });
@@ -179,7 +178,7 @@
                     }
                 } else {
                     // Spelaren finns inte, skapa en ny post
-                    await setDoc(docRef, {
+                    await addDoc(highscoresCollection, {
                         name: name,
                         score: userScore,
                         timestamp: serverTimestamp()
