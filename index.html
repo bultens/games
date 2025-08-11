@@ -45,23 +45,56 @@
         import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Globala variabler från Canvas-miljön
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : null;
+        const canvasAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- Klistra in din egen Firebase-konfiguration här för att köra spelet utanför Canvas-miljön ---
+        // Du hittar denna information i ditt Firebase-projekt under "Project settings" -> "Your apps".
+        // Om du kör i Canvas, kommer den här konfigurationen att ignoreras.
+const firebaseConfig = {
+  apiKey: "AIzaSyA_E4M8WPU3qrrWtW8fOkSJEM46sylRyzk",
+  authDomain: "snake-6dbce.firebaseapp.com",
+  projectId: "snake-6dbce",
+  storageBucket: "snake-6dbce.firebasestorage.app",
+  messagingSenderId: "322128334339",
+  appId: "1:322128334339:web:f9815a73fb71ab75eb8836",
+  measurementId: "G-QS1QW6ZZJ0"
+};
+        // ------------------------------------------------------------------------------------------
+
+        // Använd Canvas-konfiguration om den finns, annars den anpassade
+        const firebaseConfig = canvasFirebaseConfig || customFirebaseConfig;
+        const appId = canvasAppId || customFirebaseConfig.appId;
 
         // Initiera Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app;
+        let auth;
+        let db;
+        let highscoresCollection;
 
-        // Skapa en referens till highscore-samlingen
-        const highscoresCollection = collection(db, `artifacts/${appId}/public/data/highscores`);
+        function initializeFirebase() {
+            try {
+                if (!firebaseConfig.projectId || firebaseConfig.projectId === "DITT_PROJEKT_ID_HÄR") {
+                     console.error("Firebase-konfiguration saknas. Vänligen klistra in din konfiguration för att spelet ska fungera på GitHub.");
+                     return false;
+                }
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                highscoresCollection = collection(db, `artifacts/${appId}/public/data/highscores`);
+                return true;
+            } catch (e) {
+                console.error("Kunde inte initiera Firebase:", e);
+                return false;
+            }
+        }
 
         // Autentiserar användaren
         async function authenticate() {
             try {
-                if (authToken) {
-                    await signInWithCustomToken(auth, authToken);
+                if (canvasAuthToken) {
+                    await signInWithCustomToken(auth, canvasAuthToken);
                 } else {
                     await signInAnonymously(auth);
                 }
@@ -105,6 +138,10 @@
         
         // Lyssnar på ändringar i databasen och uppdaterar topplistan
         function loadHighScores() {
+            if (!db) {
+                console.warn("Firebase är inte initialiserat. Topplistan kan inte laddas.");
+                return;
+            }
             const q = query(highscoresCollection, orderBy('score', 'desc'), limit(10));
             onSnapshot(q, (querySnapshot) => {
                 const scores = [];
@@ -119,7 +156,7 @@
 
         // Sparar en ny poäng i databasen
         async function saveHighScore(name, userScore) {
-            if (isSavingScore || userScore === 0) return;
+            if (!db || isSavingScore || userScore === 0) return;
             isSavingScore = true;
             try {
                 // Använd exponential backoff för att hantera API-anrop
@@ -356,10 +393,19 @@
 
         // Körs när fönstret laddats
         window.onload = function() {
-            authenticate().then(() => {
-                loadHighScores();
-                initializeGame();
-            });
+            if (initializeFirebase()) {
+                authenticate().then(() => {
+                    loadHighScores();
+                    initializeGame();
+                });
+            } else {
+                // Visa ett meddelande till användaren om Firebase-konfigurationen saknas
+                const highscoreContainer = document.getElementById('highscore-container');
+                const errorMessage = document.createElement('p');
+                errorMessage.className = 'text-center text-red-500 mt-4 font-bold';
+                errorMessage.innerText = 'Kan inte ladda topplistan. Vänligen lägg till din Firebase-konfiguration i koden.';
+                highscoreContainer.appendChild(errorMessage);
+            }
         };
     </script>
 </body>
