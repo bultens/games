@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 
@@ -25,6 +26,14 @@
         h1 {
             font-size: 2.5rem;
             margin-bottom: 20px;
+        }
+
+        #main-container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
         }
 
         #game-container {
@@ -84,18 +93,119 @@
             color: #bdc3c7;
             margin-top: 10px;
         }
+
+        #highscore-container {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 300px;
+        }
+
+        #highscore-container h2 {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f1c40f;
+            margin-bottom: 15px;
+        }
+
+        #highscore-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #highscore-list li {
+            background-color: #2c3e50;
+            margin-bottom: 8px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+        }
+
+        #highscore-list li:nth-child(1) { color: #ffd700; }
+        #highscore-list li:nth-child(2) { color: #c0c0c0; }
+        #highscore-list li:nth-child(3) { color: #cd7f32; }
+
+        .score-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .score-form input {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #7f8c8d;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-size: 1rem;
+        }
+
+        .score-form button {
+            width: 100%;
+        }
+
     </style>
+    <!-- Firebase imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, getDocs, query, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Globala variabler för Firebase
+        window.firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        window.authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+
+        // Initiera Firebase
+        window.app = initializeApp(window.firebaseConfig);
+        window.auth = getAuth(window.app);
+        window.db = getFirestore(window.app);
+
+        // Skapa en referens till highscore-samlingen
+        window.highscoresCollection = collection(window.db, `artifacts/${window.appId}/public/data/highscores`);
+
+        // Logga in användaren
+        async function authenticate() {
+            try {
+                if (window.authToken) {
+                    await signInWithCustomToken(window.auth, window.authToken);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+            } catch (error) {
+                console.error("Autentisering misslyckades", error);
+            }
+        }
+        window.authenticate = authenticate;
+    </script>
 </head>
 <body>
     <h1>Snake</h1>
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="score-container">Poäng: <span id="score">0</span></div>
-        <button id="startButton">Starta spel</button>
-        <p id="controls-info">Tryck på "Starta spel" och styr med piltangenterna.</p>
+    <div id="main-container">
+        <div id="game-container">
+            <canvas id="gameCanvas"></canvas>
+            <div id="score-container">Poäng: <span id="score">0</span></div>
+            <button id="startButton">Starta spel</button>
+            <p id="controls-info">Tryck på "Starta spel" och styr med piltangenterna.</p>
+        </div>
+        <div id="highscore-container">
+            <h2>Topplista</h2>
+            <ol id="highscore-list">
+                <!-- Poängen kommer att visas här -->
+                <li>Inga poäng än</li>
+            </ol>
+        </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { onSnapshot, addDoc, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // Spelkonstanter
         const CANVAS_SIZE = 400; // Total storlek på canvas i pixlar
         const GRID_SIZE = 20; // Antal rutnätsceller (t.ex. 20x20)
@@ -106,22 +216,80 @@
         // Speltillståndsvariabler
         let snake = [];
         let food = {};
-        let direction = { x: 1, y: 0 }; 
+        let direction = { x: 1, y: 0 };
         let score = 0;
         let gameSpeed = INITIAL_SPEED;
         let gameLoop = null;
         let isGameOver = false;
         let isGameStarted = false;
+        let isSavingScore = false;
 
         // Hämta DOM-element
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const startButton = document.getElementById('startButton');
+        const controlsInfo = document.getElementById('controls-info');
+        const highscoreList = document.getElementById('highscore-list');
+        const gameContainer = document.getElementById('game-container');
 
         // Ställ in canvas-dimensioner
         canvas.width = CANVAS_SIZE;
         canvas.height = CANVAS_SIZE;
+
+        // --- Databasfunktioner ---
+
+        function loadHighScores() {
+            // Skapa en fråga som lyssnar på ändringar i highscores-samlingen
+            // Firestore-reglerna förhindrar för närvarande "orderBy", så vi sorterar manuellt
+            onSnapshot(window.highscoresCollection, (querySnapshot) => {
+                const scores = [];
+                querySnapshot.forEach((doc) => {
+                    scores.push({ ...doc.data(), id: doc.id });
+                });
+                // Sortera poängen lokalt och ta de 10 bästa
+                scores.sort((a, b) => b.score - a.score);
+                const top10 = scores.slice(0, 10);
+                
+                renderHighScores(top10);
+            }, (error) => {
+                console.error("Fel vid laddning av poäng:", error);
+            });
+        }
+
+        async function saveHighScore(name, userScore) {
+            if (isSavingScore || userScore === 0) return;
+            isSavingScore = true;
+            try {
+                // Lägg till poängen i databasen
+                await addDoc(window.highscoresCollection, {
+                    name: name,
+                    score: userScore,
+                    timestamp: serverTimestamp()
+                });
+                console.log("Poäng sparad!");
+            } catch (e) {
+                console.error("Fel vid sparande av poäng:", e);
+            } finally {
+                isSavingScore = false;
+            }
+        }
+
+        function renderHighScores(scores) {
+            highscoreList.innerHTML = '';
+            if (scores.length === 0) {
+                const li = document.createElement('li');
+                li.innerText = 'Inga poäng än';
+                highscoreList.appendChild(li);
+                return;
+            }
+            scores.forEach(scoreData => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${scoreData.name}</span><span>${scoreData.score}</span>`;
+                highscoreList.appendChild(li);
+            });
+        }
+
 
         // --- Spellogikfunktioner ---
 
@@ -133,9 +301,10 @@
             score = 0;
             gameSpeed = INITIAL_SPEED;
             isGameOver = false;
-            isGameStarted = false; // VIKTIG FIX: isGameStarted ska vara false vid initialisering
+            isGameStarted = false; 
             scoreElement.innerText = score;
             startButton.innerText = 'Starta spel';
+            controlsInfo.style.display = 'block';
             render();
         }
 
@@ -220,46 +389,35 @@
             isGameStarted = false;
             clearInterval(gameLoop);
             startButton.innerText = 'Spela igen';
-            alertMessage('Game Over!', `Dina poäng: ${score}`);
+            showScoreForm(score);
         }
 
-        // Anpassad varningsfunktion eftersom window.alert() är blockerad
-        function alertMessage(title, message) {
-            const container = document.getElementById('game-container');
-            let messageBox = document.getElementById('messageBox');
-            
-            if (!messageBox) {
-                messageBox = document.createElement('div');
-                messageBox.id = 'messageBox';
-                messageBox.style.cssText = `
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background-color: rgba(44, 62, 80, 0.95);
-                    color: #ecf0f1;
-                    padding: 30px;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-                    text-align: center;
-                    z-index: 1000;
-                    width: 80%;
-                    max-width: 300px;
-                    display: none;
+        // Visa formuläret för att spara poäng
+        function showScoreForm(finalScore) {
+            let scoreForm = document.getElementById('score-form');
+            if (!scoreForm) {
+                scoreForm = document.createElement('div');
+                scoreForm.id = 'score-form';
+                scoreForm.className = 'score-form';
+                scoreForm.innerHTML = `
+                    <p>Bra jobbat! Din poäng är: ${finalScore}</p>
+                    <input type="text" id="playerName" placeholder="Skriv in ditt namn" required>
+                    <button id="saveScoreButton">Spara poäng</button>
                 `;
-                container.appendChild(messageBox);
-            }
-            
-            messageBox.innerHTML = `
-                <h2>${title}</h2>
-                <p>${message}</p>
-            `;
-            messageBox.style.display = 'block';
+                gameContainer.appendChild(scoreForm);
 
-            // Dölj meddelandefältet vid nästa spelstart
-            startButton.addEventListener('click', () => {
-                messageBox.style.display = 'none';
-            }, { once: true });
+                document.getElementById('saveScoreButton').addEventListener('click', async () => {
+                    const playerNameInput = document.getElementById('playerName');
+                    const name = playerNameInput.value.trim();
+                    if (name) {
+                        await saveHighScore(name, finalScore);
+                        scoreForm.remove();
+                        initializeGame();
+                    } else {
+                        playerNameInput.style.border = '2px solid red';
+                    }
+                });
+            }
         }
 
 
@@ -294,10 +452,11 @@
         // Startknappens hanterare
         startButton.addEventListener('click', () => {
             if (!isGameStarted) {
+                isGameStarted = true;
                 initializeGame();
-                gameLoop = setInterval(update, gameSpeed);
-                isGameStarted = true; // VIKTIG FIX: Sätt isGameStarted till true här!
                 startButton.innerText = 'Spelar...';
+                controlsInfo.style.display = 'none';
+                gameLoop = setInterval(update, gameSpeed);
             }
         });
 
@@ -306,9 +465,11 @@
 
         // Initial installation vid fönsterladdning
         window.onload = function() {
-            initializeGame();
+            window.authenticate().then(() => {
+                loadHighScores();
+                initializeGame();
+            });
         };
-
     </script>
 </body>
 </html>
