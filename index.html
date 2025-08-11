@@ -4,219 +4,72 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Game</title>
-    <!-- Använd Tailwind CSS för styling -->
+    <!-- Tailwind CSS för en responsiv och modern design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Importerar Google Font "Inter" */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-
-        /* Global styling för bakgrund och typsnitt */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        /* Huvudrubrik */
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-        }
-
-        /* Huvudbehållare för spel och topplista, flexbox för responsiv layout */
-        #main-container {
-            display: flex;
-            gap: 40px;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: flex-start;
-        }
-
-        /* Spelbehållaren med skugga och rundade hörn */
-        #game-container {
-            position: relative;
-            background-color: #34495e;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        /* Canvas för spelet */
-        canvas {
-            background-color: #2c3e50;
-            border: 3px solid #7f8c8d;
-            border-radius: 10px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 400px;
-            height: auto;
-            aspect-ratio: 1 / 1;
-        }
-
-        /* Behållare för poängvisning */
-        #score-container {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #f1c40f;
-        }
-
-        /* Styling för alla knappar */
-        button {
-            padding: 12px 25px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #fff;
-            background-color: #3498db;
-            border: 2px solid #556a7d; /* Lade till en ram för att synas bättre */
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        button:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Text för kontrollinstruktioner */
-        #controls-info {
-            font-size: 0.9rem;
-            color: #bdc3c7;
-            margin-top: 10px;
-        }
-
-        /* Behållare för topplistan */
-        #highscore-container {
-            background-color: #34495e;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 300px;
-        }
-
-        #highscore-container h2 {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #f1c40f;
-            margin-bottom: 15px;
-        }
-
-        #highscore-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        #highscore-list li {
-            background-color: #2c3e50;
-            margin-bottom: 8px;
-            padding: 10px 15px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 1.1rem;
-        }
-
-        #highscore-list li:nth-child(1) { color: #ffd700; }
-        #highscore-list li:nth-child(2) { color: #c0c0c0; }
-        #highscore-list li:nth-child(3) { color: #cd7f32; }
-
-        /* Formulär för att spara poäng */
-        .score-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .score-form input {
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #7f8c8d;
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            font-size: 1rem;
-        }
-
-        .score-form button {
-            width: 100%;
-        }
     </style>
-    <!-- Firebase imports för databasfunktionalitet -->
+</head>
+<body class="bg-[#2c3e50] text-[#ecf0f1] font-inter flex flex-col items-center justify-center min-h-screen p-4 box-border">
+    <h1 class="text-4xl sm:text-5xl font-bold mb-6 text-white">Snake</h1>
+
+    <!-- Huvudbehållare: responsiv flexbox som staplar på små skärmar och lägger sidorna om på större -->
+    <div class="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12 w-full max-w-7xl">
+
+        <!-- Behållare för spelet -->
+        <div id="game-container" class="relative bg-[#34495e] rounded-xl shadow-2xl p-6 flex flex-col items-center gap-4 w-full lg:w-3/5">
+            <canvas id="gameCanvas" class="bg-[#2c3e50] border-4 border-[#7f8c8d] rounded-lg shadow-inner w-full max-w-lg aspect-square"></canvas>
+            
+            <div id="score-container" class="text-2xl font-bold text-[#f1c40f]">Poäng: <span id="score">0</span></div>
+            
+            <button id="startButton" class="bg-[#3498db] hover:bg-[#2980b9] text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:shadow-md">Starta spel</button>
+            
+            <p id="controls-info" class="text-sm text-[#bdc3c7] mt-2">Tryck på "Starta spel" och styr med piltangenterna.</p>
+        </div>
+
+        <!-- Behållare för topplistan -->
+        <div id="highscore-container" class="bg-[#34495e] p-6 rounded-xl shadow-2xl w-full lg:w-2/5">
+            <h2 class="text-3xl font-bold text-[#f1c40f] mb-4">Topplista</h2>
+            <ol id="highscore-list" class="list-none p-0 m-0">
+                <!-- Poängen kommer att visas här dynamiskt via JavaScript -->
+                <li class="bg-[#2c3e50] p-3 rounded-lg mb-2 flex justify-between items-center text-lg shadow">Laddar poäng...</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Samlad JavaScript för all spel- och databaslogik -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, addDoc, getDocs, query, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Globala variabler för Firebase, hämtas från Canvas-miljön
-        window.firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        window.authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        // Globala variabler från Canvas-miljön
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
 
         // Initiera Firebase
-        window.app = initializeApp(window.firebaseConfig);
-        window.auth = getAuth(window.app);
-        window.db = getFirestore(window.app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // Skapa en referens till highscore-samlingen
-        window.highscoresCollection = collection(window.db, `artifacts/${window.appId}/public/data/highscores`);
+        const highscoresCollection = collection(db, `artifacts/${appId}/public/data/highscores`);
 
-        // Logga in användaren
+        // Autentiserar användaren
         async function authenticate() {
             try {
-                if (window.authToken) {
-                    await signInWithCustomToken(window.auth, window.authToken);
+                if (authToken) {
+                    await signInWithCustomToken(auth, authToken);
                 } else {
-                    await signInAnonymously(window.auth);
+                    await signInAnonymously(auth);
                 }
             } catch (error) {
                 console.error("Autentisering misslyckades", error);
             }
         }
-        window.authenticate = authenticate;
-    </script>
-</head>
-<body>
-    <h1>Snake</h1>
-    <div id="main-container">
-        <div id="game-container">
-            <canvas id="gameCanvas"></canvas>
-            <div id="score-container">Poäng: <span id="score">0</span></div>
-            <button id="startButton">Starta spel</button>
-            <p id="controls-info">Tryck på "Starta spel" och styr med piltangenterna.</p>
-        </div>
-        <div id="highscore-container">
-            <h2>Topplista</h2>
-            <ol id="highscore-list">
-                <!-- Poängen kommer att visas här dynamiskt via JavaScript -->
-                <li>Laddar poäng...</li>
-            </ol>
-        </div>
-    </div>
-
-    <script type="module">
-        import { onSnapshot, addDoc, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        
         // Spelkonstanter
         const CANVAS_SIZE = 400; 
         const GRID_SIZE = 20;
@@ -252,14 +105,13 @@
         
         // Lyssnar på ändringar i databasen och uppdaterar topplistan
         function loadHighScores() {
-            onSnapshot(window.highscoresCollection, (querySnapshot) => {
+            const q = query(highscoresCollection, orderBy('score', 'desc'), limit(10));
+            onSnapshot(q, (querySnapshot) => {
                 const scores = [];
                 querySnapshot.forEach((doc) => {
                     scores.push({ ...doc.data(), id: doc.id });
                 });
-                scores.sort((a, b) => b.score - a.score);
-                const top10 = scores.slice(0, 10);
-                renderHighScores(top10);
+                renderHighScores(scores);
             }, (error) => {
                 console.error("Fel vid laddning av poäng:", error);
             });
@@ -270,12 +122,31 @@
             if (isSavingScore || userScore === 0) return;
             isSavingScore = true;
             try {
-                await addDoc(window.highscoresCollection, {
-                    name: name,
-                    score: userScore,
-                    timestamp: serverTimestamp()
-                });
-                console.log("Poäng sparad!");
+                // Använd exponential backoff för att hantera API-anrop
+                let retries = 0;
+                const maxRetries = 5;
+                const baseDelay = 1000; // 1 sekund
+                
+                while (retries < maxRetries) {
+                    try {
+                        await addDoc(highscoresCollection, {
+                            name: name,
+                            score: userScore,
+                            timestamp: serverTimestamp()
+                        });
+                        console.log("Poäng sparad!");
+                        break; // Avsluta loopen vid lyckat anrop
+                    } catch (e) {
+                        retries++;
+                        const delay = baseDelay * Math.pow(2, retries);
+                        console.warn(`Försök ${retries} misslyckades. Väntar ${delay}ms...`);
+                        await new Promise(res => setTimeout(res, delay));
+                        if (retries === maxRetries) {
+                            console.error("Max antal försök nått. Fel vid sparande av poäng:", e);
+                            throw e;
+                        }
+                    }
+                }
             } catch (e) {
                 console.error("Fel vid sparande av poäng:", e);
             } finally {
@@ -288,12 +159,19 @@
             highscoreList.innerHTML = '';
             if (scores.length === 0) {
                 const li = document.createElement('li');
+                li.className = 'bg-[#2c3e50] p-3 rounded-lg mb-2 text-lg text-center shadow';
                 li.innerText = 'Inga poäng än';
                 highscoreList.appendChild(li);
                 return;
             }
-            scores.forEach(scoreData => {
+            scores.forEach((scoreData, index) => {
                 const li = document.createElement('li');
+                let colorClass = 'text-white';
+                if (index === 0) colorClass = 'text-yellow-400';
+                else if (index === 1) colorClass = 'text-gray-400';
+                else if (index === 2) colorClass = 'text-amber-700';
+
+                li.className = `bg-[#2c3e50] p-3 rounded-lg mb-2 flex justify-between items-center text-lg font-bold shadow ${colorClass}`;
                 li.innerHTML = `<span>${scoreData.name}</span><span>${scoreData.score}</span>`;
                 highscoreList.appendChild(li);
             });
@@ -309,7 +187,6 @@
             score = 0;
             gameSpeed = INITIAL_SPEED;
             isGameOver = false;
-            isGameStarted = false;
             scoreElement.innerText = score;
             startButton.innerText = 'Starta spel';
             controlsInfo.style.display = 'block';
@@ -389,6 +266,7 @@
         // Avslutar spelet och visar formulär för poäng
         function endGame() {
             isGameOver = true;
+            isGameStarted = false;
             clearInterval(gameLoop);
             startButton.innerText = 'Spela igen';
             showScoreForm(score);
@@ -400,11 +278,11 @@
             if (!scoreForm) {
                 scoreForm = document.createElement('div');
                 scoreForm.id = 'score-form';
-                scoreForm.className = 'score-form';
+                scoreForm.className = 'flex flex-col gap-4 mt-5';
                 scoreForm.innerHTML = `
-                    <p>Bra jobbat! Din poäng är: ${finalScore}</p>
-                    <input type="text" id="playerName" placeholder="Skriv in ditt namn" required>
-                    <button id="saveScoreButton">Spara poäng</button>
+                    <div class="text-xl font-semibold">Bra jobbat! Din poäng är: ${finalScore}</div>
+                    <input type="text" id="playerName" placeholder="Skriv in ditt namn" required class="p-3 rounded-lg border border-[#7f8c8d] bg-[#2c3e50] text-[#ecf0f1] focus:outline-none focus:ring-2 focus:ring-[#3498db]">
+                    <button id="saveScoreButton" class="w-full bg-[#3498db] hover:bg-[#2980b9] text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-300">Spara poäng</button>
                 `;
                 gameContainer.appendChild(scoreForm);
 
@@ -415,8 +293,10 @@
                         await saveHighScore(name, finalScore);
                         scoreForm.remove();
                         isGameStarted = false; 
+                        startButton.innerText = 'Starta spel';
+                        controlsInfo.style.display = 'block';
                     } else {
-                        playerNameInput.style.border = '2px solid red';
+                        playerNameInput.classList.add('border-red-500');
                     }
                 });
             }
@@ -426,36 +306,48 @@
 
         // Hanterar tangentbordsinmatning
         function handleKeydown(event) {
+            // Kontrollera om spelet är igång och inte över
             if (!isGameStarted || isGameOver) return;
             
             const key = event.key;
-            const newDirection = { x: direction.x, y: direction.y };
+            let newDirection = { x: direction.x, y: direction.y };
 
             switch (key) {
                 case 'ArrowUp':
-                    if (direction.y !== 1) { newDirection.x = 0; newDirection.y = -1; }
+                    if (direction.y !== 1) { newDirection = { x: 0, y: -1 }; }
                     break;
                 case 'ArrowDown':
-                    if (direction.y !== -1) { newDirection.x = 0; newDirection.y = 1; }
+                    if (direction.y !== -1) { newDirection = { x: 0, y: 1 }; }
                     break;
                 case 'ArrowLeft':
-                    if (direction.x !== 1) { newDirection.x = -1; newDirection.y = 0; }
+                    if (direction.x !== 1) { newDirection = { x: -1, y: 0 }; }
                     break;
                 case 'ArrowRight':
-                    if (direction.x !== -1) { newDirection.x = 1; newDirection.y = 0; }
+                    if (direction.x !== -1) { newDirection = { x: 1, y: 0 }; }
                     break;
             }
-            direction = newDirection;
+            // Uppdatera endast om det är en ny, giltig riktning
+            if (newDirection.x !== direction.x || newDirection.y !== direction.y) {
+                 direction = newDirection;
+            }
         }
 
         // Startknappens hanterare
         startButton.addEventListener('click', () => {
+            // Starta eller starta om spelet om det inte är igång
             if (!isGameStarted) {
                 isGameStarted = true;
                 initializeGame();
                 startButton.innerText = 'Spelar...';
                 controlsInfo.style.display = 'none';
                 gameLoop = setInterval(update, gameSpeed);
+            } else if (isGameOver) {
+                 // Om spelet är slut, starta om
+                isGameStarted = true;
+                initializeGame();
+                gameLoop = setInterval(update, gameSpeed);
+                startButton.innerText = 'Spelar...';
+                controlsInfo.style.display = 'none';
             }
         });
 
@@ -464,7 +356,7 @@
 
         // Körs när fönstret laddats
         window.onload = function() {
-            window.authenticate().then(() => {
+            authenticate().then(() => {
                 loadHighScores();
                 initializeGame();
             });
