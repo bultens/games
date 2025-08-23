@@ -252,7 +252,7 @@
 <body>
 
     <a href="index.html" class="back-button">Tillbaka till menyn</a>
-    <span class="version-tag">Ver 1.0</span>
+    <span class="version-tag">Ver 2.0</span>
 
     <div class="game-container">
         <div id="game-info">
@@ -423,41 +423,68 @@
         const initialsModal = document.getElementById("initialsModal");
         const finalScoreDisplay = document.getElementById("finalScore");
 
-        const TILE_SIZE = 25;
-        const MAP_WIDTH = 20;
-        const MAP_HEIGHT = 20;
+        const TILE_SIZE = 20;
+        const MAP_WIDTH = 28;
+        const MAP_HEIGHT = 31;
+        const GHOST_FRIGHTENED_COLOR = 'rgb(30, 60, 255)';
+        const GHOST_SCARED_BLINK_COLOR = 'rgb(255, 255, 255)';
+        const GHOST_EYES_COLOR = 'rgb(50, 50, 255)';
 
         canvas.width = MAP_WIDTH * TILE_SIZE;
         canvas.height = MAP_HEIGHT * TILE_SIZE;
 
-        const MAP = [
-            "WWWWWWWWWWWWWWWWWWWW",
-            "WDDDDDWDDDWDDDDDWP W",
-            "WDWWWWDDWDDWDDWWWD W",
-            "WDWWWD WDWDW WDWWWDW",
-            "WDDDDDDDWDWD DWWWDW",
-            "WDWWWWWDWDDWDDWWWDW",
-            "W DWWWDWDDDW DWWWDW",
-            "WDWWDWDWWWW DWWDDDW",
-            "WDDDWDDWW D DWWWDW",
-            "WWWWWW WW D WWWWWW",
-            "WWWWWW WGGGGW WWWWWW",
-            "WDDDDDDWWW WDDDDDDW",
-            "WDWWWWDWDDDWWW DWW",
-            "W DWWWWW D DWWWWWW",
-            "WDWDW D D D D DWWDW",
-            "WDWDWDDWWWWDDWDDWDW",
-            "WDDDDDWDDDDDDDWDDDW",
-            "W DWWWWWWWWWWWWWWWW",
-            "WDDDDDDDWDDDDDDDDDW",
-            "WWWWWWWWWWWWWWWWWWWW"
+        let gameMap = [];
+        let score = 0;
+        let dotsLeft = 0;
+        let lives = 3;
+        let frightenedGhostsEaten = 0;
+        let frightenedTimer = 0;
+        let gameRunning = false;
+        let level = 1;
+        const ghostPoints = [200, 400, 800, 1600];
+        
+        // This is a simplified map based on the original game's layout.
+        // W: Wall, D: Dot, P: Power Pellet, G: Ghost Gate, S: Spökenas startposition
+        const PACMAN_MAP = [
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "WPPPPPPPPPPWWPWWPPPPPPPPPPPPW",
+            "W PWWWWWW PWWPWWPWWWWWW P W",
+            "W PWWDW WDWWWWWWWDWWDDDWP W",
+            "WPDW P DWDDDDWWDDDWDPD P DW",
+            "W WWWW DWWDWW W WWWW DW WW",
+            "W W P DW W W W W W W DW P W",
+            "W W W W WWWDWWWW WDW W W W",
+            "WDDDDDDDWDWDDDWDWDWDDDWDDDW",
+            "W WWWWWWWDWWWWWWWDWWWWWW W",
+            "W WWWWWDDDWP WWWDW DD WWWW W",
+            "W WWWWW WWWWPWWWWW WWWWWW WW",
+            "WDDDDDDDPDWDDWDDDDDPDDDDDDPW",
+            "WWWWWWWWWWW  S SWWWWWWWWWWW",
+            "WWWWWWWWWWW GGGWWWWWWWWWWWW",
+            "WWWWWWWWWWWW G WWWWWWWWWWWW",
+            "WWWWWWWWWWWW G WWWWWWWWWWWW",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "WDDDDDW DD WDDDDDW DD WDDDDW",
+            "WDWWWWWDWWWDWDDWDWWWWWDWWWDW",
+            "WDW WW DWDDW DWWWDWDDDW WD",
+            "W WW DWWDW WWDWDWW WD W WD",
+            "W WWWWW WD WDWWDW WWWWW WD",
+            "WDDDWDDDWDDDWDDDWDDDWDDDDDW",
+            "WDDDWWWWWWWWWWWWWWWWWWWDWDDW",
+            "WDWWDWDWWDW DWDWWDWDWWDWWDW",
+            "WDWWDWDDDWDDDWDDDWDDWWDWWDW",
+            "WDDDDWDWWWWWWWWWWWWWWWWWWWDW",
+            "WDWWWDWDDDDDWWDDDDWDDDDDDW",
+            "WDPD WDWWWWWWWWWWWWWW W DW W",
+            "WWWWWDWDDDDDDDDDDDDDDDWDDDWW"
         ];
         
         const DIRECTIONS = {
             'UP': {x: 0, y: -1},
             'DOWN': {x: 0, y: 1},
             'LEFT': {x: -1, y: 0},
-            'RIGHT': {x: 1, y: 0}
+            'RIGHT': {x: 1, y: 0},
+            'NONE': {x: 0, y: 0}
         };
 
         const GHOST_COLORS = {
@@ -467,30 +494,28 @@
             'Clyde': 'orange'
         };
 
-        let gameRunning = false;
-        let score = 0;
-        let dotsLeft = 0;
-        let powerPelletsLeft = 0;
-        let gameMap = [];
-
         let pacman = {
-            x: 10,
-            y: 15,
-            dir: 'RIGHT',
-            nextDir: 'RIGHT'
+            x: 13.5 * TILE_SIZE, y: 23 * TILE_SIZE,
+            tileX: 13, tileY: 23,
+            dir: 'NONE',
+            nextDir: 'NONE',
+            speed: 2,
+            mouthOpen: 0,
+            mouthSpeed: 0.1
         };
 
         let ghosts = [
-            { name: 'Blinky', x: 9, y: 9, dir: 'LEFT', frightened: false },
-            { name: 'Pinky', x: 10, y: 9, dir: 'DOWN', frightened: false },
-            { name: 'Inky', x: 11, y: 9, dir: 'UP', frightened: false },
-            { name: 'Clyde', x: 12, y: 9, dir: 'LEFT', frightened: false }
+            { name: 'Blinky', x: 13.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 13, y: 14}, color: 'red', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
+            { name: 'Pinky', x: 12.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 12, y: 14}, color: 'pink', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
+            { name: 'Inky', x: 14.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 14, y: 14}, color: 'cyan', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
+            { name: 'Clyde', x: 15.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 15, y: 14}, color: 'orange', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false }
         ];
 
         let ghostScatterTimer = 0;
-        const SCATTER_DURATION = 10 * 60; // 10 seconds in frames (60 fps)
-        const CHASE_DURATION = 20 * 60;   // 20 seconds in frames
+        const SCATTER_DURATION = 10 * 60; // 10 sekunder i frames (60 fps)
+        const CHASE_DURATION = 20 * 60;   // 20 sekunder i frames
         let ghostMode = 'chase';
+        let ghostModeTimer = 0;
 
         // Initials entry mode
         let initialsEntryMode = false;
@@ -510,13 +535,18 @@
         };
 
         const initGame = () => {
-            gameMap = MAP.map(row => row.split(''));
+            gameMap = PACMAN_MAP.map(row => row.split(''));
             dotsLeft = 0;
             powerPelletsLeft = 0;
-
+            lives = 3;
+            score = 0;
+            level = 1;
+            frightenedGhostsEaten = 0;
+            ghostModeTimer = 0;
+            
             for (let y = 0; y < MAP_HEIGHT; y++) {
                 for (let x = 0; x < MAP_WIDTH; x++) {
-                    if (gameMap[y][x] === 'D') {
+                    if (gameMap[y][x] === 'P' || gameMap[y][x] === 'D') {
                         dotsLeft++;
                     }
                     if (gameMap[y][x] === 'P') {
@@ -526,140 +556,241 @@
             }
         };
 
-        const draw = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw the map
+        const drawMap = () => {
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             for (let y = 0; y < MAP_HEIGHT; y++) {
                 for (let x = 0; x < MAP_WIDTH; x++) {
                     const tile = gameMap[y][x];
+                    const screenX = x * TILE_SIZE;
+                    const screenY = y * TILE_SIZE;
                     if (tile === 'W') {
-                        ctx.fillStyle = '#0000ff';
-                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                        ctx.fillStyle = 'blue';
+                        ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
                     } else if (tile === 'D') {
-                        ctx.fillStyle = '#f5f5f5';
+                        ctx.fillStyle = 'white';
                         ctx.beginPath();
-                        ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, 3, 0, Math.PI * 2);
+                        ctx.arc(screenX + TILE_SIZE / 2, screenY + TILE_SIZE / 2, 2, 0, Math.PI * 2);
                         ctx.fill();
                     } else if (tile === 'P') {
-                         ctx.fillStyle = '#f5f5f5';
-                         ctx.beginPath();
-                         ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, 6, 0, Math.PI * 2);
-                         ctx.fill();
+                        if (frightenedTimer % 30 < 15) {
+                             ctx.fillStyle = 'white';
+                             ctx.beginPath();
+                             ctx.arc(screenX + TILE_SIZE / 2, screenY + TILE_SIZE / 2, 5, 0, Math.PI * 2);
+                             ctx.fill();
+                        }
+                    } else if (tile === 'G') {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(screenX, screenY + TILE_SIZE / 2 - 2, TILE_SIZE, 4);
                     }
                 }
             }
-
-            // Draw Pac-Man
+        };
+        
+        const drawPacman = () => {
+            const angle = Math.atan2(DIRECTIONS[pacman.dir].y, DIRECTIONS[pacman.dir].x);
+            const mouthAngle = pacman.mouthOpen * Math.PI / 4;
+            const startAngle = angle + mouthAngle;
+            const endAngle = angle - mouthAngle;
+            
             ctx.fillStyle = 'yellow';
             ctx.beginPath();
-            ctx.arc(pacman.x * TILE_SIZE + TILE_SIZE / 2, pacman.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 2 - 2, 0, Math.PI * 2);
+            ctx.arc(pacman.x, pacman.y, TILE_SIZE / 2 - 2, startAngle, endAngle);
+            ctx.lineTo(pacman.x, pacman.y);
             ctx.fill();
-
-            // Draw Ghosts
-            ghosts.forEach(ghost => {
-                ctx.fillStyle = ghost.frightened ? 'blue' : GHOST_COLORS[ghost.name];
-                ctx.beginPath();
-                ctx.arc(ghost.x * TILE_SIZE + TILE_SIZE / 2, ghost.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 2 - 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
+            
+            pacman.mouthOpen += pacman.mouthSpeed;
+            if (pacman.mouthOpen > 1 || pacman.mouthOpen < 0) {
+                pacman.mouthSpeed *= -1;
+            }
+        };
+        
+        const drawGhost = (ghost) => {
+            let color = GHOST_COLORS[ghost.name];
+            if (ghost.frightened) {
+                color = frightenedTimer > 180 || (frightenedTimer % 20 < 10) ? GHOST_FRIGHTENED_COLOR : GHOST_SCARED_BLINK_COLOR;
+            } else if (ghost.eaten) {
+                color = GHOST_EYES_COLOR;
+            }
+            
+            // Draw ghost body
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(ghost.x, ghost.y, TILE_SIZE / 2 - 2, Math.PI, 0, false);
+            ctx.lineTo(ghost.x + TILE_SIZE/2 - 2, ghost.y + TILE_SIZE/2 - 2);
+            ctx.lineTo(ghost.x - TILE_SIZE/2 + 2, ghost.y + TILE_SIZE/2 - 2);
+            ctx.fill();
         };
 
         const movePacman = () => {
-            let newX = pacman.x;
-            let newY = pacman.y;
-            
-            const nextDir = DIRECTIONS[pacman.nextDir];
-            if (gameMap[pacman.y + nextDir.y][pacman.x + nextDir.x] !== 'W') {
+            const centerX = pacman.tileX * TILE_SIZE + TILE_SIZE/2;
+            const centerY = pacman.tileY * TILE_SIZE + TILE_SIZE/2;
+
+            if (pacman.x === centerX && pacman.y === centerY) {
                 pacman.dir = pacman.nextDir;
             }
+            
+            const dir = DIRECTIONS[pacman.dir];
+            const nextTileX = pacman.tileX + dir.x;
+            const nextTileY = pacman.tileY + dir.y;
+            
+            if (gameMap[nextTileY][nextTileX] === 'W') {
+                pacman.dir = 'NONE';
+            }
 
-            const currentDir = DIRECTIONS[pacman.dir];
-            newX = pacman.x + currentDir.x;
-            newY = pacman.y + currentDir.y;
+            if (pacman.dir !== 'NONE') {
+                pacman.x += dir.x * pacman.speed;
+                pacman.y += dir.y * pacman.speed;
 
-            if (gameMap[newY][newX] !== 'W') {
-                pacman.x = newX;
-                pacman.y = newY;
+                // Teleporting through tunnels
+                if (pacman.x < 0) pacman.x = canvas.width;
+                if (pacman.x > canvas.width) pacman.x = 0;
+            }
+
+            pacman.tileX = Math.floor(pacman.x / TILE_SIZE);
+            pacman.tileY = Math.floor(pacman.y / TILE_SIZE);
+        };
+        
+        const getGhostTarget = (ghost) => {
+            if (ghost.frightened) {
+                // Frightened mode: random target
+                const possibleTiles = [];
+                for (let y = 0; y < MAP_HEIGHT; y++) {
+                    for (let x = 0; x < MAP_WIDTH; x++) {
+                        if (gameMap[y][x] !== 'W') {
+                            possibleTiles.push({x, y});
+                        }
+                    }
+                }
+                return possibleTiles[Math.floor(Math.random() * possibleTiles.length)];
+            } else {
+                // Chase mode: Pacman's position
+                return {x: pacman.tileX, y: pacman.tileY};
             }
         };
 
         const moveGhosts = () => {
             ghosts.forEach(ghost => {
-                let currentDir = DIRECTIONS[ghost.dir];
-                let newX = ghost.x + currentDir.x;
-                let newY = ghost.y + currentDir.y;
+                // If ghost is at a tile center, make a decision
+                const centerX = ghost.startTile.x * TILE_SIZE + TILE_SIZE/2;
+                const centerY = ghost.startTile.y * TILE_SIZE + TILE_SIZE/2;
+                
+                if (Math.abs(ghost.x - centerX) < 1 && Math.abs(ghost.y - centerY) < 1) {
+                    ghost.x = centerX;
+                    ghost.y = centerY;
 
-                if (gameMap[newY][newX] === 'W') {
-                    // Change direction if a wall is hit
-                    const possibleDirs = Object.keys(DIRECTIONS).filter(dir => {
-                        const testDir = DIRECTIONS[dir];
-                        return gameMap[ghost.y + testDir.y][ghost.x + testDir.x] !== 'W';
-                    });
+                    const target = getGhostTarget(ghost);
+                    let bestDir = null;
+                    let minDistance = Infinity;
+
+                    // Exclude reverse direction
+                    const oppositeDir = {
+                        'UP': 'DOWN', 'DOWN': 'UP',
+                        'LEFT': 'RIGHT', 'RIGHT': 'LEFT',
+                        'NONE': 'NONE'
+                    }[ghost.dir];
                     
-                    const newDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
-                    ghost.dir = newDir;
-                    currentDir = DIRECTIONS[newDir];
-                    newX = ghost.x + currentDir.x;
-                    newY = ghost.y + currentDir.y;
+                    ['UP', 'DOWN', 'LEFT', 'RIGHT'].forEach(dirName => {
+                        const dir = DIRECTIONS[dirName];
+                        const nextTileX = ghost.startTile.x + dir.x;
+                        const nextTileY = ghost.startTile.y + dir.y;
+                        
+                        if (dirName !== oppositeDir && gameMap[nextTileY][nextTileX] !== 'W' && gameMap[nextTileY][nextTileX] !== 'G') {
+                            const distance = Math.sqrt(Math.pow(nextTileX - target.x, 2) + Math.pow(nextTileY - target.y, 2));
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                bestDir = dirName;
+                            }
+                        }
+                    });
+
+                    if (bestDir) {
+                        ghost.dir = bestDir;
+                    }
                 }
-                ghost.x = newX;
-                ghost.y = newY;
+
+                const dir = DIRECTIONS[ghost.dir];
+                ghost.x += dir.x * (ghost.frightened ? 1.5 : 2);
+                ghost.y += dir.y * (ghost.frightened ? 1.5 : 2);
             });
         };
 
         const checkCollisions = () => {
-            // Check for dot/power pellet collisions
-            const tile = gameMap[pacman.y][pacman.x];
+            const tile = gameMap[pacman.tileY][pacman.tileX];
             if (tile === 'D') {
                 score += 10;
                 dotsLeft--;
-                gameMap[pacman.y][pacman.x] = ' ';
+                gameMap[pacman.tileY][pacman.tileX] = ' ';
                 scoreDisplay.textContent = `Poäng: ${score}`;
             } else if (tile === 'P') {
                 score += 50;
                 powerPelletsLeft--;
-                gameMap[pacman.y][pacman.x] = ' ';
+                gameMap[pacman.tileY][pacman.tileX] = ' ';
+                frightenedGhostsEaten = 0;
                 ghosts.forEach(ghost => ghost.frightened = true);
-                ghostScatterTimer = SCATTER_DURATION;
+                frightenedTimer = 420; // 7 seconds
             }
 
-            // Check for ghost collisions
             ghosts.forEach(ghost => {
-                if (pacman.x === ghost.x && pacman.y === ghost.y) {
+                const dx = pacman.x - ghost.x;
+                const dy = pacman.y - ghost.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance < TILE_SIZE) {
                     if (ghost.frightened) {
-                        score += 200;
-                        ghost.x = 10;
-                        ghost.y = 9;
+                        ghost.eaten = true;
                         ghost.frightened = false;
-                    } else {
-                        gameOver();
+                        ghost.x = ghost.startTile.x * TILE_SIZE + TILE_SIZE/2;
+                        ghost.y = ghost.startTile.y * TILE_SIZE + TILE_SIZE/2;
+                        frightenedGhostsEaten++;
+                        score += ghostPoints[frightenedGhostsEaten - 1];
+                        scoreDisplay.textContent = `Poäng: ${score}`;
+                    } else if (!ghost.eaten) {
+                        lives--;
+                        if (lives > 0) {
+                            resetState();
+                        } else {
+                            gameOver();
+                        }
                     }
                 }
             });
 
-            // Check if all dots are eaten
             if (dotsLeft === 0) {
                 // Game won
                 gameOver(true);
             }
         };
 
+        const resetState = () => {
+            pacman.x = 13.5 * TILE_SIZE;
+            pacman.y = 23 * TILE_SIZE;
+            pacman.dir = 'NONE';
+            pacman.nextDir = 'NONE';
+            
+            ghosts.forEach((ghost, index) => {
+                ghost.x = (12.5 + index) * TILE_SIZE;
+                ghost.y = 14.5 * TILE_SIZE;
+                ghost.dir = 'NONE';
+                ghost.frightened = false;
+                ghost.eaten = false;
+            });
+            frightenedTimer = 0;
+        };
+
         const gameLoop = () => {
             if (!gameRunning) return;
+
+            if (frightenedTimer > 0) {
+                frightenedTimer--;
+            }
 
             movePacman();
             moveGhosts();
             checkCollisions();
-            draw();
-
-            // Handle ghost modes
-            if (ghostScatterTimer > 0) {
-                ghostScatterTimer--;
-            } else {
-                ghosts.forEach(ghost => ghost.frightened = false);
-            }
-
+            drawMap();
+            drawPacman();
+            ghosts.forEach(drawGhost);
+            
             requestAnimationFrame(gameLoop);
         };
 
@@ -684,7 +815,6 @@
                 document.querySelector('#gameOverModal h2').textContent = 'Du vann!';
             }
 
-            // Kontrollera om poängen kvalificerar sig för top 10
             if (score > 0 && (topTenHighscores.length < 10 || score > topTenHighscores[topTenHighscores.length - 1].score)) {
                 document.getElementById("newHighScoreMessage").style.display = "block";
                 initialsEntryMode = true;
