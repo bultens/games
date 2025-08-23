@@ -252,7 +252,7 @@
 <body>
 
     <a href="index.html" class="back-button">Tillbaka till menyn</a>
-    <span class="version-tag">Ver 2.0</span>
+    <span class="version-tag">Ver 2.1</span>
 
     <div class="game-container">
         <div id="game-info">
@@ -443,40 +443,37 @@
         let level = 1;
         const ghostPoints = [200, 400, 800, 1600];
         
-        // This is a simplified map based on the original game's layout.
-        // W: Wall, D: Dot, P: Power Pellet, G: Ghost Gate, S: Spökenas startposition
         const PACMAN_MAP = [
             "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-            "WPPPPPPPPPPWWPWWPPPPPPPPPPPPW",
-            "W PWWWWWW PWWPWWPWWWWWW P W",
-            "W PWWDW WDWWWWWWWDWWDDDWP W",
-            "WPDW P DWDDDDWWDDDWDPD P DW",
-            "W WWWW DWWDWW W WWWW DW WW",
-            "W W P DW W W W W W W DW P W",
-            "W W W W WWWDWWWW WDW W W W",
-            "WDDDDDDDWDWDDDWDWDWDDDWDDDW",
-            "W WWWWWWWDWWWWWWWDWWWWWW W",
-            "W WWWWWDDDWP WWWDW DD WWWW W",
-            "W WWWWW WWWWPWWWWW WWWWWW WW",
-            "WDDDDDDDPDWDDWDDDDDPDDDDDDPW",
-            "WWWWWWWWWWW  S SWWWWWWWWWWW",
-            "WWWWWWWWWWW GGGWWWWWWWWWWWW",
-            "WWWWWWWWWWWW G WWWWWWWWWWWW",
-            "WWWWWWWWWWWW G WWWWWWWWWWWW",
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-            "WDDDDDW DD WDDDDDW DD WDDDDW",
-            "WDWWWWWDWWWDWDDWDWWWWWDWWWDW",
-            "WDW WW DWDDW DWWWDWDDDW WD",
-            "W WW DWWDW WWDWDWW WD W WD",
-            "W WWWWW WD WDWWDW WWWWW WD",
-            "WDDDWDDDWDDDWDDDWDDDWDDDDDW",
-            "WDDDWWWWWWWWWWWWWWWWWWWDWDDW",
-            "WDWWDWDWWDW DWDWWDWDWWDWWDW",
-            "WDWWDWDDDWDDDWDDDWDDWWDWWDW",
-            "WDDDDWDWWWWWWWWWWWWWWWWWWWDW",
-            "WDWWWDWDDDDDWWDDDDWDDDDDDW",
-            "WDPD WDWWWWWWWWWWWWWW W DW W",
-            "WWWWWDWDDDDDDDDDDDDDDDWDDDWW"
+            "WDDDDDDDDDDDDWWDDDDDDDDDDDDW",
+            "WDWWDW WWWDWWWDWWWDW WDWWDW",
+            "WDWWDW WDWDWDWWWDWDW WDWWDW",
+            "WDDDDDDWDWDDDWDDDWDDDDDDDDW",
+            "WDWWWWDWWWWDWWWWWDWWWWDWWWDW",
+            "WDWWWWDWWWWDDWDDWWWWWDWWWDW",
+            "WDDDDDDWDDWWWDWWWDWDDDDDDDW",
+            "WWDWWWWWWWWWDWDDWDDWWWWWWWDW",
+            "W DWWWDWDDDDWDDDDWDWWWDW D",
+            "WDWWWWDW WDDDDDDDW WWDWWDW",
+            "WDDDDWDW W WDWWWWW W WDDDDW",
+            "WWWWWWWDWDDWDWDDWDDWWWWWWWDW",
+            "       WDDDDDDWWDDDDDDW      ",
+            "WWWWWWWDWWWWWDWDDWDDWWWWWWWDW",
+            "WDWDDDDWWWWWDWDDWDWWWWDDDDW",
+            "WDWWWWWDWWWWDDWDDWWWWWDWWWDW",
+            "WDDDDDDWDDWWWDWWWDWDDDDDDDW",
+            "WDWWDWDWWWWWWWWWWWWWWWDWWDW",
+            "WDDDDWDWDDDWDDDWDDDWDDDDDW",
+            "WWWWWWWDWWWWWWWWWWWWWWWDWWWW",
+            "WDDDDDWDDDDDDWWDDDDDDDDW DDW",
+            "WDWWWWWWWDWWWDWWWWWDWWDWWDW",
+            "WDWWWDWWDWWDWWWDWWDWWDWWDW",
+            "WDDWDWDDDWDDWWWDWWDDDWDDWDDW",
+            "WDWWDWWDWWDW WDWWDWWDWWDWWDW",
+            "WDDDDDDW DWWWWWWWWWWWWWWWDW",
+            "WWDWWWWW WWWWWWWW WWWWWWWDW",
+            "WDPDDDWDDWDDDWDDDDDDWDDDDW",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWW"
         ];
         
         const DIRECTIONS = {
@@ -495,7 +492,7 @@
         };
 
         let pacman = {
-            x: 13.5 * TILE_SIZE, y: 23 * TILE_SIZE,
+            x: 13.5 * TILE_SIZE, y: 23.5 * TILE_SIZE,
             tileX: 13, tileY: 23,
             dir: 'NONE',
             nextDir: 'NONE',
@@ -505,10 +502,10 @@
         };
 
         let ghosts = [
-            { name: 'Blinky', x: 13.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 13, y: 14}, color: 'red', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
-            { name: 'Pinky', x: 12.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 12, y: 14}, color: 'pink', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
-            { name: 'Inky', x: 14.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 14, y: 14}, color: 'cyan', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
-            { name: 'Clyde', x: 15.5 * TILE_SIZE, y: 14 * TILE_SIZE, startTile: {x: 15, y: 14}, color: 'orange', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false }
+            { name: 'Blinky', x: 13.5 * TILE_SIZE, y: 14.5 * TILE_SIZE, startTile: {x: 13, y: 14}, color: 'red', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
+            { name: 'Pinky', x: 12.5 * TILE_SIZE, y: 14.5 * TILE_SIZE, startTile: {x: 12, y: 14}, color: 'pink', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
+            { name: 'Inky', x: 14.5 * TILE_SIZE, y: 14.5 * TILE_SIZE, startTile: {x: 14, y: 14}, color: 'cyan', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false },
+            { name: 'Clyde', x: 15.5 * TILE_SIZE, y: 14.5 * TILE_SIZE, startTile: {x: 15, y: 14}, color: 'orange', dir: 'NONE', frightened: false, scaredTimer: 0, eaten: false }
         ];
 
         let ghostScatterTimer = 0;
@@ -537,20 +534,11 @@
         const initGame = () => {
             gameMap = PACMAN_MAP.map(row => row.split(''));
             dotsLeft = 0;
-            powerPelletsLeft = 0;
-            lives = 3;
-            score = 0;
-            level = 1;
-            frightenedGhostsEaten = 0;
-            ghostModeTimer = 0;
             
             for (let y = 0; y < MAP_HEIGHT; y++) {
                 for (let x = 0; x < MAP_WIDTH; x++) {
                     if (gameMap[y][x] === 'P' || gameMap[y][x] === 'D') {
                         dotsLeft++;
-                    }
-                    if (gameMap[y][x] === 'P') {
-                        powerPelletsLeft++;
                     }
                 }
             }
@@ -625,28 +613,34 @@
         const movePacman = () => {
             const centerX = pacman.tileX * TILE_SIZE + TILE_SIZE/2;
             const centerY = pacman.tileY * TILE_SIZE + TILE_SIZE/2;
-
-            if (pacman.x === centerX && pacman.y === centerY) {
-                pacman.dir = pacman.nextDir;
-            }
-            
             const dir = DIRECTIONS[pacman.dir];
-            const nextTileX = pacman.tileX + dir.x;
-            const nextTileY = pacman.tileY + dir.y;
+            const nextDir = DIRECTIONS[pacman.nextDir];
             
-            if (gameMap[nextTileY][nextTileX] === 'W') {
-                pacman.dir = 'NONE';
+            // Check if Pac-Man is at a tile center to change direction
+            if (Math.abs(pacman.x - centerX) < pacman.speed && Math.abs(pacman.y - centerY) < pacman.speed) {
+                pacman.x = centerX;
+                pacman.y = centerY;
+
+                // Check for next direction
+                const nextTileX = pacman.tileX + nextDir.x;
+                const nextTileY = pacman.tileY + nextDir.y;
+                if (gameMap[nextTileY] && gameMap[nextTileY][nextTileX] !== 'W') {
+                    pacman.dir = pacman.nextDir;
+                } else if (gameMap[pacman.tileY] && gameMap[pacman.tileY][pacman.tileX + dir.x] === 'W') {
+                    // Stop if current direction is blocked
+                    pacman.dir = 'NONE';
+                }
             }
 
-            if (pacman.dir !== 'NONE') {
-                pacman.x += dir.x * pacman.speed;
-                pacman.y += dir.y * pacman.speed;
+            const currentDir = DIRECTIONS[pacman.dir];
+            pacman.x += currentDir.x * pacman.speed;
+            pacman.y += currentDir.y * pacman.speed;
 
-                // Teleporting through tunnels
-                if (pacman.x < 0) pacman.x = canvas.width;
-                if (pacman.x > canvas.width) pacman.x = 0;
-            }
-
+            // Teleporting through tunnels
+            if (pacman.x < 0) pacman.x = canvas.width;
+            if (pacman.x > canvas.width) pacman.x = 0;
+            
+            // Update tile coordinates
             pacman.tileX = Math.floor(pacman.x / TILE_SIZE);
             pacman.tileY = Math.floor(pacman.y / TILE_SIZE);
         };
@@ -672,16 +666,18 @@
         const moveGhosts = () => {
             ghosts.forEach(ghost => {
                 // If ghost is at a tile center, make a decision
-                const centerX = ghost.startTile.x * TILE_SIZE + TILE_SIZE/2;
-                const centerY = ghost.startTile.y * TILE_SIZE + TILE_SIZE/2;
+                const centerX = Math.floor(ghost.x / TILE_SIZE) * TILE_SIZE + TILE_SIZE / 2;
+                const centerY = Math.floor(ghost.y / TILE_SIZE) * TILE_SIZE + TILE_SIZE / 2;
                 
-                if (Math.abs(ghost.x - centerX) < 1 && Math.abs(ghost.y - centerY) < 1) {
+                if (Math.abs(ghost.x - centerX) < 2 && Math.abs(ghost.y - centerY) < 2) {
                     ghost.x = centerX;
                     ghost.y = centerY;
 
                     const target = getGhostTarget(ghost);
                     let bestDir = null;
                     let minDistance = Infinity;
+                    const ghostTileX = Math.floor(ghost.x / TILE_SIZE);
+                    const ghostTileY = Math.floor(ghost.y / TILE_SIZE);
 
                     // Exclude reverse direction
                     const oppositeDir = {
@@ -692,10 +688,10 @@
                     
                     ['UP', 'DOWN', 'LEFT', 'RIGHT'].forEach(dirName => {
                         const dir = DIRECTIONS[dirName];
-                        const nextTileX = ghost.startTile.x + dir.x;
-                        const nextTileY = ghost.startTile.y + dir.y;
+                        const nextTileX = ghostTileX + dir.x;
+                        const nextTileY = ghostTileY + dir.y;
                         
-                        if (dirName !== oppositeDir && gameMap[nextTileY][nextTileX] !== 'W' && gameMap[nextTileY][nextTileX] !== 'G') {
+                        if (dirName !== oppositeDir && gameMap[nextTileY] && gameMap[nextTileY][nextTileX] !== 'W') {
                             const distance = Math.sqrt(Math.pow(nextTileX - target.x, 2) + Math.pow(nextTileY - target.y, 2));
                             if (distance < minDistance) {
                                 minDistance = distance;
@@ -710,32 +706,40 @@
                 }
 
                 const dir = DIRECTIONS[ghost.dir];
-                ghost.x += dir.x * (ghost.frightened ? 1.5 : 2);
-                ghost.y += dir.y * (ghost.frightened ? 1.5 : 2);
+                ghost.x += dir.x * (ghost.frightened ? 1 : 1.5);
+                ghost.y += dir.y * (ghost.frightened ? 1 : 1.5);
+
+                 // Teleporting through tunnels
+                if (ghost.x < 0) ghost.x = canvas.width;
+                if (ghost.x > canvas.width) ghost.x = 0;
             });
         };
 
         const checkCollisions = () => {
-            const tile = gameMap[pacman.tileY][pacman.tileX];
+            // Check for dot/power pellet collisions
+            const tileX = Math.round(pacman.x / TILE_SIZE - 0.5);
+            const tileY = Math.round(pacman.y / TILE_SIZE - 0.5);
+            
+            const tile = gameMap[tileY][tileX];
             if (tile === 'D') {
                 score += 10;
                 dotsLeft--;
-                gameMap[pacman.tileY][pacman.tileX] = ' ';
+                gameMap[tileY][tileX] = ' ';
                 scoreDisplay.textContent = `Poäng: ${score}`;
             } else if (tile === 'P') {
                 score += 50;
-                powerPelletsLeft--;
-                gameMap[pacman.tileY][pacman.tileX] = ' ';
+                dotsLeft--; // Power pellet räknas också som en prick
+                gameMap[tileY][tileX] = ' ';
                 frightenedGhostsEaten = 0;
                 ghosts.forEach(ghost => ghost.frightened = true);
-                frightenedTimer = 420; // 7 seconds
+                frightenedTimer = 420; // 7 sekunder
             }
 
             ghosts.forEach(ghost => {
                 const dx = pacman.x - ghost.x;
                 const dy = pacman.y - ghost.y;
                 const distance = Math.sqrt(dx*dx + dy*dy);
-                if (distance < TILE_SIZE) {
+                if (distance < TILE_SIZE * 0.8) {
                     if (ghost.frightened) {
                         ghost.eaten = true;
                         ghost.frightened = false;
@@ -763,7 +767,7 @@
 
         const resetState = () => {
             pacman.x = 13.5 * TILE_SIZE;
-            pacman.y = 23 * TILE_SIZE;
+            pacman.y = 23.5 * TILE_SIZE;
             pacman.dir = 'NONE';
             pacman.nextDir = 'NONE';
             
@@ -803,7 +807,9 @@
             gameOverModal.style.display = "none";
             initialsModal.style.display = "none";
             initGame();
-            gameLoop();
+            
+            // Start the game loop
+            requestAnimationFrame(gameLoop);
         };
 
         const gameOver = (win = false) => {
@@ -909,6 +915,12 @@
                 }
             }
         });
+
+        window.onload = function() {
+            initGame();
+            drawMap();
+            getHighScores();
+        };
 
     </script>
 </body>
