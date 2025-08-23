@@ -130,6 +130,46 @@
             margin-bottom: 5px;
         }
 
+        #highscore-list-container {
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+            margin-top: 40px;
+            max-width: 600px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 10px #ff00ff;
+            border-radius: 8px;
+        }
+        #highscore-list-container h2 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        #highscore-list-container ol {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #highscore-list-container li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+        #highscore-list-container li:last-child {
+            margin-bottom: 0;
+        }
+        .highscore-initials {
+            color: #f5f5f5;
+        }
+        .highscore-score {
+            color: #00ffff;
+        }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -179,12 +219,41 @@
             color: #fff;
             box-shadow: 0 0 10px #ff00ff;
         }
+
+        /* New modal for initials */
+        #initialsModal h2 {
+            color: #f5f5f5;
+        }
+        .initials-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .initial-char {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border: 2px solid #00ffff;
+            background: rgba(0, 0, 0, 0.4);
+            color: #f5f5f5;
+            transition: all 0.2s;
+            box-shadow: inset 0 0 5px #00ffff;
+        }
+        .initial-char.selected {
+            border-color: #ff00ff;
+            color: #ff00ff;
+            box-shadow: 0 0 10px #ff00ff, inset 0 0 10px #ff00ff;
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
 
     <a href="index.html" class="back-button">Tillbaka till menyn</a>
-    <span class="version-tag">Ver 1.0</span>
+    <span class="version-tag">Ver 1.3</span>
 
     <div class="game-container">
         <div id="game-info">
@@ -195,7 +264,7 @@
             </p>
             <p id="message">Klicka för att börja!</p>
         </div>
-        <canvas id="gameCanvas" width="800" height="600" tabindex="1"></canvas>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div id="instructions">
             <h2>Hur man spelar</h2>
@@ -206,6 +275,13 @@
                 <li>På mobilen, **svep åt vänster eller höger** på skärmen.</li>
                 <li>Överlev så länge som möjligt för att få högsta poäng!</li>
             </ul>
+        </div>
+
+        <!-- Highscore list -->
+        <div id="highscore-list-container">
+            <h2>Topp 10 Highscore</h2>
+            <p id="loading-highscores">Laddar highscores...</p>
+            <ol id="highscore-list"></ol>
         </div>
     </div>
 
@@ -219,10 +295,24 @@
         </div>
     </div>
 
+    <!-- New modal for initials -->
+    <div id="initialsModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Grattis! Ny highscore!</h2>
+            <p>Ange dina initialer (3 bokstäver):</p>
+            <div class="initials-input-container">
+                <span id="initial-char-0" class="initial-char selected">A</span>
+                <span id="initial-char-1" class="initial-char">A</span>
+                <span id="initial-char-2" class="initial-char">A</span>
+            </div>
+            <button class="modal-button" id="saveInitialsBtn">Spara poäng</button>
+        </div>
+    </div>
+
     <!-- Firebase SDK-skript -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // --- FIREBASE SETUP ---
@@ -243,58 +333,89 @@
         const auth = getAuth(app);
         
         let userId = null;
-        let highScore = 0;
+        let topTenHighscores = [];
         
         // Sign in anonymously to get a user ID
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 userId = user.uid;
                 console.log("Firebase ansluten. Användar-ID:", userId);
-                await getHighScore();
+                await getHighScores();
             } else {
                 console.log("Firebase ansluten. Loggar in anonymt...");
                 await signInAnonymously(auth);
             }
         });
 
-        const getHighScore = async () => {
-            if (!userId) {
-                console.error("Användar-ID saknas, kan inte hämta highscore.");
+        const getHighScores = async () => {
+            const highscoreListEl = document.getElementById("highscore-list");
+            const loadingMessage = document.getElementById("loading-highscores");
+            
+            if (!db) {
+                console.error("Databasen är inte ansluten.");
+                loadingMessage.textContent = "Kunde inte ladda highscores.";
                 return;
             }
+
             try {
-                // Highscores will be stored under a 'games' collection, with a document for each game.
-                const gameDocRef = doc(db, "games", "hexagon");
-                const docSnap = await getDoc(gameDocRef);
-                if (docSnap.exists() && docSnap.data().highScore) {
-                    highScore = docSnap.data().highScore;
-                    document.getElementById("high-score-display").textContent = `Highscore: ${highScore}`;
-                    console.log("Highscore hämtad från Firebase:", highScore);
+                // Hämta highscores från subkollektionen
+                const scoresRef = collection(db, "highscores", "hexagon", "scores");
+                const q = query(scoresRef, orderBy("score", "desc"));
+                const querySnapshot = await getDocs(q);
+
+                topTenHighscores = [];
+                querySnapshot.forEach(doc => {
+                    topTenHighscores.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // Sortera poängen i fallande ordning baserat på poäng
+                topTenHighscores.sort((a, b) => b.score - a.score);
+                
+                // Rendera listan
+                highscoreListEl.innerHTML = '';
+                loadingMessage.style.display = 'none';
+
+                if (topTenHighscores.length > 0) {
+                    topTenHighscores.slice(0, 10).forEach((item, index) => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `
+                            <span>${index + 1}. <span class="highscore-initials">${item.initials}</span></span>
+                            <span class="highscore-score">${item.score}</span>
+                        `;
+                        highscoreListEl.appendChild(li);
+                    });
+                    // Uppdatera den högsta poängen som visas ovanför canvas
+                    document.getElementById("high-score-display").textContent = `Highscore: ${topTenHighscores[0].score}`;
                 } else {
-                    console.log("Ingen highscore hittades för Hexagon.");
+                    highscoreListEl.innerHTML = '<li>Inga highscores än. Var den första!</li>';
                 }
+
+                console.log("Highscores hämtade från Firebase.");
             } catch (e) {
-                console.error("Fel vid hämtning av highscore:", e);
+                console.error("Fel vid hämtning av highscores:", e);
+                loadingMessage.textContent = "Kunde inte ladda highscores.";
             }
         };
 
-        const saveHighScore = async (newScore) => {
+        const saveHighScore = async (newScore, initials) => {
             if (!userId) {
                 console.error("Användar-ID saknas, kan inte spara highscore.");
                 return;
             }
-            // Only save if the new score is a new high score
-            if (newScore > highScore) {
-                try {
-                    const gameDocRef = doc(db, "games", "hexagon");
-                    await setDoc(gameDocRef, { highScore: newScore }, { merge: true });
-                    console.log("Ny highscore sparad till Firebase:", newScore);
-                    highScore = newScore;
-                    document.getElementById("high-score-display").textContent = `Highscore: ${highScore}`;
-                    document.getElementById("newHighScoreMessage").style.display = "block";
-                } catch (e) {
-                    console.error("Fel vid sparande av highscore:", e);
-                }
+            try {
+                const scoresRef = collection(db, "highscores", "hexagon", "scores");
+                
+                // Lägg till den nya poängen
+                await addDoc(scoresRef, {
+                    initials: initials.toUpperCase(),
+                    score: newScore,
+                    timestamp: new Date()
+                });
+
+                console.log("Ny highscore sparad till Firebase:", newScore);
+                await getHighScores(); // Ladda om listan för att visa den nya poängen
+            } catch (e) {
+                console.error("Fel vid sparande av highscore:", e);
             }
         };
 
@@ -305,6 +426,7 @@
         const scoreDisplay = document.getElementById("score-display");
         const messageDisplay = document.getElementById("message");
         const gameOverModal = document.getElementById("gameOverModal");
+        const initialsModal = document.getElementById("initialsModal");
         const finalScoreDisplay = document.getElementById("finalScore");
 
         let gameRunning = false;
@@ -314,23 +436,64 @@
         const hexagonRadius = 150;
         const playerRadius = 10;
         let playerAngle = 0;
-        const playerSpeed = 0.05;
+        const rotationSpeed = 0.05; // Ny variabel för rotationshastighet
         const wallWidth = 10;
-        const wallSpeed = 1;
-        const maxWallSpeed = 5;
+        let wallSpeed = 1.5; // Starta med lite högre hastighet för att det ska bli roligare
+        const maxWallSpeed = 8;
+        const speedIncreaseInterval = 10;
+        const speedIncreaseAmount = 0.5;
+        let lastSpeedIncreaseScore = 0;
 
         let walls = [];
         let wallTimer = 0;
-        const wallInterval = 60; // How often a new wall is added
+        const wallInterval = 60; // Hur ofta en ny vägg läggs till
+
+        const keys = {
+            left: false,
+            right: false
+        };
+
+        // Initials entry mode
+        let initialsEntryMode = false;
+        const characterSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split('');
+        let currentInitials = ['A', 'A', 'A'];
+        let selectedInitialIndex = 0;
+
+        const renderInitials = () => {
+            document.getElementById('initial-char-0').textContent = currentInitials[0];
+            document.getElementById('initial-char-1').textContent = currentInitials[1];
+            document.getElementById('initial-char-2').textContent = currentInitials[2];
+
+            // Update selection highlight
+            document.querySelectorAll('.initial-char').forEach((el, index) => {
+                el.classList.toggle('selected', index === selectedInitialIndex);
+            });
+        };
 
         const gameLoop = () => {
             if (!gameRunning) return;
 
-            // Clear the canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Kontrollera om svårighetsgraden ska öka
+            if (score > lastSpeedIncreaseScore && score % speedIncreaseInterval === 0) {
+                if (wallSpeed < maxWallSpeed) {
+                    wallSpeed += speedIncreaseAmount;
+                    console.log(`Svårighetsgrad ökad! Nuvarande vägghastighet: ${wallSpeed}`);
+                }
+                lastSpeedIncreaseScore = score;
+            }
 
-            // Move and draw player
-            playerAngle += playerSpeed;
+            // Rensa canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Uppdatera spelarens vinkel baserat på tangentstatus för smidig rotation
+            if (keys.left) {
+                playerAngle -= rotationSpeed;
+            }
+            if (keys.right) {
+                playerAngle += rotationSpeed;
+            }
+
+            // Rita spelare
             const playerX = canvas.width / 2 + Math.cos(playerAngle) * hexagonRadius;
             const playerY = canvas.height / 2 + Math.sin(playerAngle) * hexagonRadius;
             ctx.beginPath();
@@ -338,7 +501,7 @@
             ctx.fillStyle = "#ff00ff"; // Neon pink
             ctx.fill();
 
-            // Draw the hexagon
+            // Rita hexagonen
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i;
@@ -355,31 +518,35 @@
             ctx.strokeStyle = "#00ffff"; // Neon cyan
             ctx.stroke();
 
-            // Update and draw walls
+            // Uppdatera och rita väggar
             walls = walls.filter(wall => {
                 wall.distance -= wallSpeed;
-                // Check for collision with the player
+                // Kollision med spelaren
                 const distanceToPlayer = Math.abs(wall.distance - hexagonRadius);
                 if (distanceToPlayer < playerRadius + 5 && distanceToPlayer > 0) {
                     const wallStartAngle = (Math.PI / 3) * wall.side;
                     const wallEndAngle = wallStartAngle + (Math.PI / 3);
-                    const playerAngleInWall = playerAngle % (Math.PI * 2);
                     
-                    if (playerAngleInWall > wallStartAngle && playerAngleInWall < wallEndAngle) {
-                         // Collision! Game over.
+                    let normalizedPlayerAngle = playerAngle % (Math.PI * 2);
+                    if (normalizedPlayerAngle < 0) {
+                        normalizedPlayerAngle += Math.PI * 2;
+                    }
+
+                    if (normalizedPlayerAngle > wallStartAngle && normalizedPlayerAngle < wallEndAngle) {
+                         // Kollision! Game over.
                          gameOver();
                          return false;
                     }
                 }
 
-                // Check for successful pass
+                // Kontrollera för lyckad passage
                 if (wall.distance < -10) {
                     score++;
                     scoreDisplay.textContent = `Poäng: ${score}`;
-                    return false; // Remove wall
+                    return false; // Ta bort väggen
                 }
                 
-                // Draw the wall
+                // Rita väggen
                 ctx.beginPath();
                 const startAngle = (Math.PI / 3) * wall.side;
                 const endAngle = startAngle + (Math.PI / 3);
@@ -393,10 +560,10 @@
                 ctx.strokeStyle = "#ff00ff";
                 ctx.stroke();
 
-                return true; // Keep wall
+                return true; // Behåll väggen
             });
 
-            // Add new walls
+            // Lägg till nya väggar
             wallTimer++;
             if (wallTimer > wallInterval) {
                 const side = Math.floor(Math.random() * 6);
@@ -413,11 +580,12 @@
             gameRunning = true;
             score = 0;
             walls = [];
+            wallSpeed = 1.5; // Återställ hastigheten när spelet startar om
+            lastSpeedIncreaseScore = 0;
             scoreDisplay.textContent = `Poäng: 0`;
             messageDisplay.textContent = "";
             gameOverModal.style.display = "none";
-            // Set canvas focus to enable keyboard controls
-            canvas.focus(); 
+            initialsModal.style.display = "none";
             gameLoop();
         };
 
@@ -425,51 +593,119 @@
             gameRunning = false;
             finalScoreDisplay.textContent = score;
             gameOverModal.style.display = "flex";
-            saveHighScore(score);
+            
+            // Kontrollera om poängen kvalificerar sig för top 10
+            if (score > 0 && (topTenHighscores.length < 10 || score > topTenHighscores[topTenHighscores.length - 1].score)) {
+                document.getElementById("newHighScoreMessage").style.display = "block";
+                initialsEntryMode = true;
+                
+                setTimeout(() => {
+                    gameOverModal.style.display = "none";
+                    initialsModal.style.display = "flex";
+                    selectedInitialIndex = 0; // Fix: Återställ markören till första initialen
+                    renderInitials();
+                }, 2000); // Vänta 2 sekunder innan initial-modalen visas
+            } else {
+                saveHighScore(score, "---"); // Spara poängen utan initialer om den inte är topp 10
+            }
         };
+        
+        // Event listener för att spara initialer
+        document.getElementById("saveInitialsBtn").addEventListener("click", () => {
+            const initials = currentInitials.join('');
+            saveHighScore(score, initials);
+            initialsEntryMode = false;
+            initialsModal.style.display = "none";
+        });
 
-        // Event listeners
+        // Händelselyssnare
         canvas.addEventListener("click", () => {
             if (!gameRunning) {
                 startGame();
             }
         });
         
-        // Touch events for mobile
+        // Touch-händelser för mobil
         let touchStartX = 0;
         canvas.addEventListener("touchstart", (e) => {
             touchStartX = e.touches[0].clientX;
             if (!gameRunning) {
                 startGame();
+            } else if (initialsEntryMode) {
+                // Handle touch for initials entry
+                const target = e.target.closest('.initial-char');
+                if (target) {
+                    selectedInitialIndex = parseInt(target.id.replace('initial-char-', ''), 10);
+                    renderInitials();
+                }
             }
         });
         
         canvas.addEventListener("touchmove", (e) => {
-            if (!gameRunning) return;
+            if (!gameRunning || initialsEntryMode) return;
             const touchMoveX = e.touches[0].clientX;
             const deltaX = touchMoveX - touchStartX;
             if (deltaX > 5) {
-                // Swipe right
-                playerAngle += 0.1; // Rotate clockwise
+                // Svep höger
+                keys.right = true;
+                keys.left = false;
             } else if (deltaX < -5) {
-                // Swipe left
-                playerAngle -= 0.1; // Rotate counter-clockwise
+                // Svep vänster
+                keys.left = true;
+                keys.right = false;
+            } else {
+                keys.left = false;
+                keys.right = false;
             }
             touchStartX = touchMoveX;
         });
 
-        // Keyboard controls
+        canvas.addEventListener("touchend", () => {
+            keys.left = false;
+            keys.right = false;
+        });
+
+        // Tangentbordskontroller
         document.addEventListener("keydown", (e) => {
-            if (!gameRunning) {
-                startGame();
-                return;
+            if (initialsEntryMode) {
+                const charIndex = characterSet.indexOf(currentInitials[selectedInitialIndex]);
+
+                if (e.key === "ArrowLeft") {
+                    selectedInitialIndex = (selectedInitialIndex - 1 + 3) % 3;
+                    renderInitials();
+                } else if (e.key === "ArrowRight") {
+                    selectedInitialIndex = (selectedInitialIndex + 1) % 3;
+                    renderInitials();
+                } else if (e.key === "ArrowUp") {
+                    const newCharIndex = (charIndex + 1) % characterSet.length;
+                    currentInitials[selectedInitialIndex] = characterSet[newCharIndex];
+                    renderInitials();
+                } else if (e.key === "ArrowDown") {
+                    const newCharIndex = (charIndex - 1 + characterSet.length) % characterSet.length;
+                    currentInitials[selectedInitialIndex] = characterSet[newCharIndex];
+                    renderInitials();
+                } else if (e.key === "Enter") {
+                    document.getElementById("saveInitialsBtn").click();
+                }
+            } else {
+                if (!gameRunning) {
+                    startGame();
+                }
+                if (e.key === "ArrowLeft") {
+                    keys.left = true;
+                } else if (e.key === "ArrowRight") {
+                    keys.right = true;
+                }
             }
-            if (e.key === "ArrowLeft") {
-                playerAngle -= 0.1;
-                console.log("ArrowLeft key pressed.");
-            } else if (e.key === "ArrowRight") {
-                playerAngle += 0.1;
-                console.log("ArrowRight key pressed.");
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (!initialsEntryMode) {
+                if (e.key === "ArrowLeft") {
+                    keys.left = false;
+                } else if (e.key === "ArrowRight") {
+                    keys.right = false;
+                }
             }
         });
 
