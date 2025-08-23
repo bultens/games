@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pacman | Spel</title>
+    <!-- Fonts from the original page -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- New font for the 80s theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Shared styles from the original page */
+        :root {
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2b2b2b;
+            --text-color: #f5f5f5;
+            --accent-color: #3498db;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* Retro game specific styles */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            background-color: #0d0d0d;
+            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+        }
+
+        /* Back button styling */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #00ffff; /* Neon Cyan */
+            font-family: 'Press Start 2P', cursive;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff, inset 0 0 10px #00ffff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            text-shadow: 0 0 5px #00ffff;
+            z-index: 10;
+        }
+
+        .back-button:hover {
+            color: #ff00ff; /* Neon Pink */
+            background: rgba(255, 0, 255, 0.2);
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 15px #ff00ff;
+            transform: scale(1.05);
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        
+        /* Version tag styling */
+        .version-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Press Start 2P', cursive;
+            color: rgba(0, 255, 255, 0.5); /* Faded neon cyan */
+            text-shadow: 0 0 2px rgba(0, 255, 255, 0.2);
+            font-size: 0.8em;
+            z-index: 10;
+        }
+
+        /* Game canvas and UI */
+        canvas {
+            background-color: #000;
+            border: 5px solid #ff00ff;
+            box-shadow: 0 0 20px #ff00ff, inset 0 0 20px #ff00ff;
+            border-radius: 8px;
+            margin-top: 20px;
+            outline: none;
+        }
+
+        #game-info {
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            margin-top: 20px;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        #score-display, #high-score-display {
+            font-size: 1.5em;
+        }
+
+        #message {
+            font-size: 1.2em;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        
+        #instructions {
+            font-family: 'Press Start 2P', cursive;
+            color: #f5f5f5;
+            text-shadow: 0 0 2px #f5f5f5;
+            margin-top: 40px;
+            max-width: 600px;
+            line-height: 1.8;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+            border-radius: 8px;
+        }
+        #instructions h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        #instructions li {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        #highscore-list-container {
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+            margin-top: 40px;
+            max-width: 600px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 10px #ff00ff;
+            border-radius: 8px;
+        }
+        #highscore-list-container h2 {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        #highscore-list-container ol {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #highscore-list-container li {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+        #highscore-list-container li:last-child {
+            margin-bottom: 0;
+        }
+        .highscore-initials {
+            color: #f5f5f5;
+        }
+        .highscore-score {
+            color: #00ffff;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background-color: #1a1a1a;
+            border: 2px solid #ff00ff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px #ff00ff;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .modal h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .modal-button {
+            background: #00ffff;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease-in-out;
+            margin-top: 20px;
+            text-shadow: none;
+        }
+
+        .modal-button:hover {
+            background: #ff00ff;
+            color: #fff;
+            box-shadow: 0 0 10px #ff00ff;
+        }
+
+        /* New modal for initials */
+        #initialsModal h2 {
+            color: #f5f5f5;
+        }
+        .initials-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .initial-char {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border: 2px solid #00ffff;
+            background: rgba(0, 0, 0, 0.4);
+            color: #f5f5f5;
+            transition: all 0.2s;
+            box-shadow: inset 0 0 5px #00ffff;
+        }
+        .initial-char.selected {
+            border-color: #ff00ff;
+            color: #ff00ff;
+            box-shadow: 0 0 10px #ff00ff, inset 0 0 10px #ff00ff;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-button">Tillbaka till menyn</a>
+    <span class="version-tag">Ver 1.0</span>
+
+    <div class="game-container">
+        <div id="game-info">
+            <h1>Pac-Man</h1>
+            <p>
+                <span id="score-display">Poäng: 0</span> | 
+                <span id="high-score-display">Highscore: 0</span>
+            </p>
+            <p id="message">Klicka för att börja!</p>
+        </div>
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
+        
+        <div id="instructions">
+            <h2>Hur man spelar</h2>
+            <ul>
+                <li>Ät alla prickar utan att bli fångad av spökena.</li>
+                <li>Ät de större power-pellets för att göra spökena sårbara.</li>
+                <li>Använd **piltangenterna** (upp, ner, vänster, höger) för att röra dig.</li>
+                <li>På mobilen, **svep i önskad riktning** på skärmen.</li>
+            </ul>
+        </div>
+
+        <!-- Highscore list -->
+        <div id="highscore-list-container">
+            <h2>Topp 10 Highscore</h2>
+            <p id="loading-highscores">Laddar highscores...</p>
+            <ol id="highscore-list"></ol>
+        </div>
+    </div>
+
+    <!-- Modals for game messages -->
+    <div id="gameOverModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Game Over</h2>
+            <p>Din poäng: <span id="finalScore">0</span></p>
+            <p id="newHighScoreMessage" style="color: #ff00ff; display: none;">Ny highscore!</p>
+            <button class="modal-button" onclick="window.location.reload()">Spela igen</button>
+        </div>
+    </div>
+
+    <!-- New modal for initials -->
+    <div id="initialsModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Grattis! Ny highscore!</h2>
+            <p>Ange dina initialer (3 bokstäver):</p>
+            <div class="initials-input-container">
+                <span id="initial-char-0" class="initial-char selected">A</span>
+                <span id="initial-char-1" class="initial-char">A</span>
+                <span id="initial-char-2" class="initial-char">A</span>
+            </div>
+            <button class="modal-button" id="saveInitialsBtn">Spara poäng</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK-skript -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // --- FIREBASE SETUP ---
+        // Din Firebase-konfiguration från den tillhandahållna filen
+        const firebaseConfig = {
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+            authDomain: "kumlaskytte.firebaseapp.com",
+            projectId: "kumlaskytte",
+            storageBucket: "kumlaskytte.firebasestorage.app",
+            messagingSenderId: "571676149705",
+            appId: "1:571676149705:web:a0ace868f4680298a78a18",
+            measurementId: "G-KSJ9NLNDBX"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let topTenHighscores = [];
+        
+        // Logga in anonymt för att få ett användar-ID
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("Firebase ansluten. Användar-ID:", userId);
+                await getHighScores();
+            } else {
+                console.log("Firebase ansluten. Loggar in anonymt...");
+                await signInAnonymously(auth);
+            }
+        });
+
+        const getHighScores = async () => {
+            const highscoreListEl = document.getElementById("highscore-list");
+            const loadingMessage = document.getElementById("loading-highscores");
+            
+            if (!db) {
+                console.error("Databasen är inte ansluten.");
+                loadingMessage.textContent = "Kunde inte ladda highscores.";
+                return;
+            }
+
+            try {
+                // Hämta highscores från subkollektionen för Pacman
+                const scoresRef = collection(db, "highscores", "pacman", "scores");
+                const q = query(scoresRef, orderBy("score", "desc"));
+                const querySnapshot = await getDocs(q);
+
+                topTenHighscores = [];
+                querySnapshot.forEach(doc => {
+                    topTenHighscores.push({ id: doc.id, ...doc.data() });
+                });
+                
+                topTenHighscores.sort((a, b) => b.score - a.score);
+                
+                highscoreListEl.innerHTML = '';
+                loadingMessage.style.display = 'none';
+
+                if (topTenHighscores.length > 0) {
+                    topTenHighscores.slice(0, 10).forEach((item, index) => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `
+                            <span>${index + 1}. <span class="highscore-initials">${item.initials}</span></span>
+                            <span class="highscore-score">${item.score}</span>
+                        `;
+                        highscoreListEl.appendChild(li);
+                    });
+                    document.getElementById("high-score-display").textContent = `Highscore: ${topTenHighscores[0].score}`;
+                } else {
+                    highscoreListEl.innerHTML = '<li>Inga highscores än. Var den första!</li>';
+                }
+
+                console.log("Highscores hämtade från Firebase.");
+            } catch (e) {
+                console.error("Fel vid hämtning av highscores:", e);
+                loadingMessage.textContent = "Kunde inte ladda highscores.";
+            }
+        };
+
+        const saveHighScore = async (newScore, initials) => {
+            if (!userId) {
+                console.error("Användar-ID saknas, kan inte spara highscore.");
+                return;
+            }
+            try {
+                const scoresRef = collection(db, "highscores", "pacman", "scores");
+                
+                await addDoc(scoresRef, {
+                    initials: initials.toUpperCase(),
+                    score: newScore,
+                    timestamp: new Date()
+                });
+
+                console.log("Ny highscore sparad till Firebase:", newScore);
+                await getHighScores(); 
+            } catch (e) {
+                console.error("Fel vid sparande av highscore:", e);
+            }
+        };
+
+
+        // --- GAME LOGIC (PAC-MAN) ---
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score-display");
+        const messageDisplay = document.getElementById("message");
+        const gameOverModal = document.getElementById("gameOverModal");
+        const initialsModal = document.getElementById("initialsModal");
+        const finalScoreDisplay = document.getElementById("finalScore");
+
+        const TILE_SIZE = 25;
+        const MAP_WIDTH = 20;
+        const MAP_HEIGHT = 20;
+
+        canvas.width = MAP_WIDTH * TILE_SIZE;
+        canvas.height = MAP_HEIGHT * TILE_SIZE;
+
+        const MAP = [
+            "WWWWWWWWWWWWWWWWWWWW",
+            "WDDDDDWDDDWDDDDDWP W",
+            "WDWWWWDDWDDWDDWWWD W",
+            "WDWWWD WDWDW WDWWWDW",
+            "WDDDDDDDWDWD DWWWDW",
+            "WDWWWWWDWDDWDDWWWDW",
+            "W DWWWDWDDDW DWWWDW",
+            "WDWWDWDWWWW DWWDDDW",
+            "WDDDWDDWW D DWWWDW",
+            "WWWWWW WW D WWWWWW",
+            "WWWWWW WGGGGW WWWWWW",
+            "WDDDDDDWWW WDDDDDDW",
+            "WDWWWWDWDDDWWW DWW",
+            "W DWWWWW D DWWWWWW",
+            "WDWDW D D D D DWWDW",
+            "WDWDWDDWWWWDDWDDWDW",
+            "WDDDDDWDDDDDDDWDDDW",
+            "W DWWWWWWWWWWWWWWWW",
+            "WDDDDDDDWDDDDDDDDDW",
+            "WWWWWWWWWWWWWWWWWWWW"
+        ];
+        
+        const DIRECTIONS = {
+            'UP': {x: 0, y: -1},
+            'DOWN': {x: 0, y: 1},
+            'LEFT': {x: -1, y: 0},
+            'RIGHT': {x: 1, y: 0}
+        };
+
+        const GHOST_COLORS = {
+            'Blinky': 'red',
+            'Pinky': 'pink',
+            'Inky': 'cyan',
+            'Clyde': 'orange'
+        };
+
+        let gameRunning = false;
+        let score = 0;
+        let dotsLeft = 0;
+        let powerPelletsLeft = 0;
+        let gameMap = [];
+
+        let pacman = {
+            x: 10,
+            y: 15,
+            dir: 'RIGHT',
+            nextDir: 'RIGHT'
+        };
+
+        let ghosts = [
+            { name: 'Blinky', x: 9, y: 9, dir: 'LEFT', frightened: false },
+            { name: 'Pinky', x: 10, y: 9, dir: 'DOWN', frightened: false },
+            { name: 'Inky', x: 11, y: 9, dir: 'UP', frightened: false },
+            { name: 'Clyde', x: 12, y: 9, dir: 'LEFT', frightened: false }
+        ];
+
+        let ghostScatterTimer = 0;
+        const SCATTER_DURATION = 10 * 60; // 10 seconds in frames (60 fps)
+        const CHASE_DURATION = 20 * 60;   // 20 seconds in frames
+        let ghostMode = 'chase';
+
+        // Initials entry mode
+        let initialsEntryMode = false;
+        const characterSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split('');
+        let currentInitials = ['A', 'A', 'A'];
+        let selectedInitialIndex = 0;
+
+        const renderInitials = () => {
+            document.getElementById('initial-char-0').textContent = currentInitials[0];
+            document.getElementById('initial-char-1').textContent = currentInitials[1];
+            document.getElementById('initial-char-2').textContent = currentInitials[2];
+
+            // Update selection highlight
+            document.querySelectorAll('.initial-char').forEach((el, index) => {
+                el.classList.toggle('selected', index === selectedInitialIndex);
+            });
+        };
+
+        const initGame = () => {
+            gameMap = MAP.map(row => row.split(''));
+            dotsLeft = 0;
+            powerPelletsLeft = 0;
+
+            for (let y = 0; y < MAP_HEIGHT; y++) {
+                for (let x = 0; x < MAP_WIDTH; x++) {
+                    if (gameMap[y][x] === 'D') {
+                        dotsLeft++;
+                    }
+                    if (gameMap[y][x] === 'P') {
+                        powerPelletsLeft++;
+                    }
+                }
+            }
+        };
+
+        const draw = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the map
+            for (let y = 0; y < MAP_HEIGHT; y++) {
+                for (let x = 0; x < MAP_WIDTH; x++) {
+                    const tile = gameMap[y][x];
+                    if (tile === 'W') {
+                        ctx.fillStyle = '#0000ff';
+                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                    } else if (tile === 'D') {
+                        ctx.fillStyle = '#f5f5f5';
+                        ctx.beginPath();
+                        ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (tile === 'P') {
+                         ctx.fillStyle = '#f5f5f5';
+                         ctx.beginPath();
+                         ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, 6, 0, Math.PI * 2);
+                         ctx.fill();
+                    }
+                }
+            }
+
+            // Draw Pac-Man
+            ctx.fillStyle = 'yellow';
+            ctx.beginPath();
+            ctx.arc(pacman.x * TILE_SIZE + TILE_SIZE / 2, pacman.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 2 - 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw Ghosts
+            ghosts.forEach(ghost => {
+                ctx.fillStyle = ghost.frightened ? 'blue' : GHOST_COLORS[ghost.name];
+                ctx.beginPath();
+                ctx.arc(ghost.x * TILE_SIZE + TILE_SIZE / 2, ghost.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 2 - 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        };
+
+        const movePacman = () => {
+            let newX = pacman.x;
+            let newY = pacman.y;
+            
+            const nextDir = DIRECTIONS[pacman.nextDir];
+            if (gameMap[pacman.y + nextDir.y][pacman.x + nextDir.x] !== 'W') {
+                pacman.dir = pacman.nextDir;
+            }
+
+            const currentDir = DIRECTIONS[pacman.dir];
+            newX = pacman.x + currentDir.x;
+            newY = pacman.y + currentDir.y;
+
+            if (gameMap[newY][newX] !== 'W') {
+                pacman.x = newX;
+                pacman.y = newY;
+            }
+        };
+
+        const moveGhosts = () => {
+            ghosts.forEach(ghost => {
+                let currentDir = DIRECTIONS[ghost.dir];
+                let newX = ghost.x + currentDir.x;
+                let newY = ghost.y + currentDir.y;
+
+                if (gameMap[newY][newX] === 'W') {
+                    // Change direction if a wall is hit
+                    const possibleDirs = Object.keys(DIRECTIONS).filter(dir => {
+                        const testDir = DIRECTIONS[dir];
+                        return gameMap[ghost.y + testDir.y][ghost.x + testDir.x] !== 'W';
+                    });
+                    
+                    const newDir = possibleDirs[Math.floor(Math.random() * possibleDirs.length)];
+                    ghost.dir = newDir;
+                    currentDir = DIRECTIONS[newDir];
+                    newX = ghost.x + currentDir.x;
+                    newY = ghost.y + currentDir.y;
+                }
+                ghost.x = newX;
+                ghost.y = newY;
+            });
+        };
+
+        const checkCollisions = () => {
+            // Check for dot/power pellet collisions
+            const tile = gameMap[pacman.y][pacman.x];
+            if (tile === 'D') {
+                score += 10;
+                dotsLeft--;
+                gameMap[pacman.y][pacman.x] = ' ';
+                scoreDisplay.textContent = `Poäng: ${score}`;
+            } else if (tile === 'P') {
+                score += 50;
+                powerPelletsLeft--;
+                gameMap[pacman.y][pacman.x] = ' ';
+                ghosts.forEach(ghost => ghost.frightened = true);
+                ghostScatterTimer = SCATTER_DURATION;
+            }
+
+            // Check for ghost collisions
+            ghosts.forEach(ghost => {
+                if (pacman.x === ghost.x && pacman.y === ghost.y) {
+                    if (ghost.frightened) {
+                        score += 200;
+                        ghost.x = 10;
+                        ghost.y = 9;
+                        ghost.frightened = false;
+                    } else {
+                        gameOver();
+                    }
+                }
+            });
+
+            // Check if all dots are eaten
+            if (dotsLeft === 0) {
+                // Game won
+                gameOver(true);
+            }
+        };
+
+        const gameLoop = () => {
+            if (!gameRunning) return;
+
+            movePacman();
+            moveGhosts();
+            checkCollisions();
+            draw();
+
+            // Handle ghost modes
+            if (ghostScatterTimer > 0) {
+                ghostScatterTimer--;
+            } else {
+                ghosts.forEach(ghost => ghost.frightened = false);
+            }
+
+            requestAnimationFrame(gameLoop);
+        };
+
+        const startGame = () => {
+            if (gameRunning) return;
+            gameRunning = true;
+            score = 0;
+            scoreDisplay.textContent = `Poäng: 0`;
+            messageDisplay.textContent = "";
+            gameOverModal.style.display = "none";
+            initialsModal.style.display = "none";
+            initGame();
+            gameLoop();
+        };
+
+        const gameOver = (win = false) => {
+            gameRunning = false;
+            finalScoreDisplay.textContent = score;
+            gameOverModal.style.display = "flex";
+            
+            if (win) {
+                document.querySelector('#gameOverModal h2').textContent = 'Du vann!';
+            }
+
+            // Kontrollera om poängen kvalificerar sig för top 10
+            if (score > 0 && (topTenHighscores.length < 10 || score > topTenHighscores[topTenHighscores.length - 1].score)) {
+                document.getElementById("newHighScoreMessage").style.display = "block";
+                initialsEntryMode = true;
+                
+                setTimeout(() => {
+                    gameOverModal.style.display = "none";
+                    initialsModal.style.display = "flex";
+                    selectedInitialIndex = 0; 
+                    renderInitials();
+                }, 2000); 
+            } else {
+                saveHighScore(score, "---"); 
+            }
+        };
+        
+        // Event listener för att spara initialer
+        document.getElementById("saveInitialsBtn").addEventListener("click", () => {
+            const initials = currentInitials.join('');
+            saveHighScore(score, initials);
+            initialsEntryMode = false;
+            initialsModal.style.display = "none";
+        });
+
+        // Tangentbordskontroller
+        document.addEventListener("keydown", (e) => {
+            if (initialsEntryMode) {
+                const charIndex = characterSet.indexOf(currentInitials[selectedInitialIndex]);
+                if (e.key === "ArrowLeft") {
+                    selectedInitialIndex = (selectedInitialIndex - 1 + 3) % 3;
+                    renderInitials();
+                } else if (e.key === "ArrowRight") {
+                    selectedInitialIndex = (selectedInitialIndex + 1) % 3;
+                    renderInitials();
+                } else if (e.key === "ArrowUp") {
+                    const newCharIndex = (charIndex + 1) % characterSet.length;
+                    currentInitials[selectedInitialIndex] = characterSet[newCharIndex];
+                    renderInitials();
+                } else if (e.key === "ArrowDown") {
+                    const newCharIndex = (charIndex - 1 + characterSet.length) % characterSet.length;
+                    currentInitials[selectedInitialIndex] = characterSet[newCharIndex];
+                    renderInitials();
+                } else if (e.key === "Enter") {
+                    document.getElementById("saveInitialsBtn").click();
+                }
+            } else {
+                 if (!gameRunning) {
+                     startGame();
+                 }
+                 if (e.key === 'ArrowUp') pacman.nextDir = 'UP';
+                 if (e.key === 'ArrowDown') pacman.nextDir = 'DOWN';
+                 if (e.key === 'ArrowLeft') pacman.nextDir = 'LEFT';
+                 if (e.key === 'ArrowRight') pacman.nextDir = 'RIGHT';
+            }
+        });
+        
+        // Touch-händelser för mobil
+        let touchStartX = null;
+        let touchStartY = null;
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            
+            if (!gameRunning) {
+                startGame();
+            }
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+            
+            if (initialsEntryMode) {
+                // This part of the code is not optimized for touch, so we will skip.
+                return;
+            }
+
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                if (deltaX > 0) {
+                    pacman.nextDir = 'RIGHT';
+                } else {
+                    pacman.nextDir = 'LEFT';
+                }
+            } else {
+                if (deltaY > 0) {
+                    pacman.nextDir = 'DOWN';
+                } else {
+                    pacman.nextDir = 'UP';
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
