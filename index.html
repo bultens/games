@@ -3,389 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snake Game</title>
-    <!-- Tailwind CSS för en responsiv och modern design -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Spel | Bultens.net</title>
+    <!-- Fonts from the original page -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- New font for the 80s theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* Importerar Google Font "Inter" */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        /* Original styles from your page */
+        :root {
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2b2b2b;
+            --text-color: #f5f5f5;
+            --accent-color: #3498db;
+            --card-bg: #333;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 5%;
+            background-color: var(--secondary-bg);
+            border-bottom: 1px solid #444;
+        }
+        .logo {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 1.5em;
+            text-transform: uppercase;
+        }
+        nav a {
+            color: var(--text-color);
+            text-decoration: none;
+            margin-left: 25px;
+            font-weight: 400;
+            transition: color 0.3s;
+        }
+        nav a:hover {
+            color: var(--accent-color);
+        }
+        .lang-switch {
+            background: none;
+            border: 1px solid var(--text-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Montserrat', sans-serif;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+            margin-left: 25px;
+        }
+        .lang-switch:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        footer {
+            text-align: center;
+            padding: 30px 5%;
+            background-color: var(--secondary-bg);
+            margin-top: 40px;
+            border-top: 1px solid #444;
+        }
+        footer .social-links a {
+            color: var(--text-color);
+            margin: 0 10px;
+            font-size: 1.5em;
+            text-decoration: none;
+        }
+        footer .social-links a:hover {
+            color: var(--accent-color);
+        }
+
+        /* 80s Retro styles for the game menu */
+        body {
+            /* Create a subtle dark scanline/grid pattern */
+            background-color: #0d0d0d;
+            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+        }
+
+        .game-menu-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 150px); /* Adjust based on header and footer height */
+            padding: 20px;
+            text-align: center;
+        }
+
+        .menu-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.5em;
+            color: #ff00ff; /* Neon Pink */
+            text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 15px #ff00ff, 0 0 20px #00FFFF; /* Glowing effect */
+            margin-bottom: 40px;
+            text-transform: uppercase;
+        }
+
+        .game-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .game-item {
+            display: block;
+            padding: 15px 25px;
+            text-decoration: none;
+            color: #00ffff; /* Neon Cyan */
+            font-family: 'Press Start 2P', cursive;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff, inset 0 0 10px #00ffff;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .game-item:hover {
+            color: #ff00ff; /* Neon Pink */
+            background: rgba(255, 0, 255, 0.2);
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 15px #ff00ff;
+            transform: scale(1.05);
+            text-shadow: 0 0 5px #ff00ff;
+            cursor: pointer;
+        }
+        
+        /* Language switcher text fix for the new style */
+        .lang-switch.no-lang-change {
+            font-family: 'Montserrat', sans-serif;
+        }
+
     </style>
 </head>
-<body class="bg-[#2c3e50] text-[#ecf0f1] font-inter flex flex-col items-center justify-center min-h-screen p-4 box-border">
-    <h1 class="text-4xl sm:text-5xl font-bold mb-6 text-white">Snake</h1>
+<body onload="setLang('sv');">
+    <!-- Header from your original page -->
+    <header>
+        <div class="logo" data-sv="BULTENS.NET" data-en="BULTENS.NET">BULTENS.NET</div>
+        <nav>
+            <a href="https://bultens.github.io/CV/" data-sv="CV" data-en="CV">CV</a>
+            <a href="index.html" data-sv="Sidor" data-en="Pages">Sidor</a>
+            <a href="https://bultens.github.io/links/" data-sv="Länkar" data-en="Links">Länkar</a>
+            <a href="#contact" data-sv="Kontakt" data-en="Contact">Kontakt</a>
+            <button class="lang-switch no-lang-change" onclick="toggleLang()">EN</button>
+        </nav>
+    </header>
 
-    <!-- Huvudbehållare: responsiv flexbox som staplar på små skärmar och lägger sidorna om på större -->
-    <div class="flex flex-col lg:flex-row items-center lg:items-start gap-8 lg:gap-12 w-full max-w-7xl">
-
-        <!-- Behållare för spelet -->
-        <div id="game-container" class="relative bg-[#34495e] rounded-xl shadow-2xl p-6 flex flex-col items-center gap-4 w-full lg:w-3/5">
-            <canvas id="gameCanvas" class="bg-[#2c3e50] border-4 border-[#7f8c8d] rounded-lg shadow-inner w-full max-w-lg aspect-square"></canvas>
-            
-            <div id="score-container" class="text-2xl font-bold text-[#f1c40f]">Poäng: <span id="score">0</span></div>
-            
-            <button id="startButton" class="bg-[#3498db] hover:bg-[#2980b9] text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 active:shadow-md">Starta spel</button>
-            
-            <p id="controls-info" class="text-sm text-[#bdc3c7] mt-2">Tryck på "Starta spel" och styr med piltangenterna.</p>
-        </div>
-
-        <!-- Behållare för topplistan -->
-        <div id="highscore-container" class="bg-[#34495e] p-6 rounded-xl shadow-2xl w-full lg:w-2/5">
-            <h2 class="text-3xl font-bold text-[#f1c40f] mb-4">Topplista</h2>
-            <ol id="highscore-list" class="list-none p-0 m-0">
-                <!-- Poängen kommer att visas här dynamiskt via JavaScript -->
-                <li class="bg-[#2c3e50] p-3 rounded-lg mb-2 flex justify-between items-center text-lg shadow">Laddar poäng...</li>
-            </ol>
+    <!-- 80s style game menu section -->
+    <div class="game-menu-container">
+        <h1 class="menu-title">Spelarkad</h1>
+        <div class="game-list">
+            <!-- Game links -->
+            <a href="hexagon.html" class="game-item">Hexagon</a>
+            <a href="tetris.html" class="game-item">Tetris</a>
+            <a href="arkanoid.html" class="game-item">Arkanoid</a>
+            <a href="pacman.html" class="game-item">Pac-Man</a>
+            <a href="space-invaders.html" class="game-item">Space Invaders</a>
         </div>
     </div>
 
-    <!-- Samlad JavaScript för all spel- och databaslogik -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- Footer from your original page -->
+    <footer id="contact">
+        <p data-sv="Kontakta mig på: " data-en="Contact me at: ">Kontakta mig på: <a href="mailto:mats@bultens.net">mats@bultens.net</a></p>
+        <div class="social-links">
+            <a href="https://www.linkedin.com/in/matsjohnsson1972/" target="_blank">
+                <img src="https://placehold.co/50x50/1a1a1a/f5f5f5?text=LinkedIn" alt="Länk till LinkedIn" width="50" height="50"></a>
+            <a href="https://www.deviantart.com/macsaidesign" target="_blank">
+                <img src="https://placehold.co/50x50/1a1a1a/f5f5f5?text=DeviantArt" alt="Länk till DeviantArt" width="50" height="50"></a>
+            <a href="https://www.facebook.com/macsswe" target="_blank">
+                <img src="https://placehold.co/50x50/1a1a1a/f5f5f5?text=Facebook" alt="Länk till Facebook" width="50" height="50"></a>
+        </div>
+        <p style="font-size: 0.8em; margin-top: 10px;">&copy; 2025 Mats Jonsson</p>
+    </footer>
 
-        // Globala variabler från Canvas-miljön
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            // Placeholder för din Firebase-konfiguration om du kör koden utanför Canvas
-            apiKey: "DITT_API_NYCKEL",
-            authDomain: "DITT_AUTH_DOMÄN",
-            projectId: "DITT_PROJEKT_ID",
-            storageBucket: "DITT_STORAGE_BUCKET",
-            messagingSenderId: "DITT_MESSAGING_SENDER_ID",
-            appId: "DITT_APP_ID"
-        };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    <!-- JavaScript from your original page -->
+    <script>
+        let currentLang = 'sv';
+        const texts = document.querySelectorAll('[data-sv]');
+        const langSwitchButton = document.querySelector('.lang-switch');
+        const htmlElement = document.querySelector('html');
 
-        // Initiera Firebase
-        let app;
-        let auth;
-        let db;
-        let userId;
-        let highscoresCollection;
+        function setLang(lang) {
+            currentLang = lang;
+            htmlElement.setAttribute('lang', lang);
 
-        async function initializeFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                
-                // Använd en anpassad autentiseringstoken om den finns, annars logga in anonymt
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
+            texts.forEach(element => {
+                const langText = element.getAttribute(`data-${lang}`);
+                if (langText) {
+                    element.textContent = langText;
                 }
-                
-                // Sätt userId baserat på den autentiserade användaren eller en slumpmässig UUID
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-                highscoresCollection = collection(db, `artifacts/${appId}/public/data/highscores`);
-                
-                console.log("Firebase initialiserad och användare autentiserad.");
-                return true;
-            } catch (e) {
-                console.error("Kunde inte initiera Firebase:", e);
-                return false;
-            }
-        }
-
-        // --- Databasfunktioner ---
-        
-        // Lyssnar på ändringar i databasen och uppdaterar topplistan
-        function loadHighScores() {
-            if (!db) {
-                console.warn("Firebase är inte initialiserat. Topplistan kan inte laddas.");
-                return;
-            }
-            // Lyssnar på alla dokument i samlingen
-            onSnapshot(highscoresCollection, (querySnapshot) => {
-                const scores = [];
-                querySnapshot.forEach((doc) => {
-                    scores.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Sortera poängen lokalt i JavaScript
-                scores.sort((a, b) => b.score - a.score);
-
-                renderHighScores(scores);
-            }, (error) => {
-                console.error("Fel vid laddning av poäng:", error);
             });
+            langSwitchButton.textContent = currentLang === 'sv' ? 'EN' : 'SV';
         }
 
-        // Sparar en ny poäng i databasen
-        async function saveHighScore(name, userScore) {
-            if (!db || userScore === 0) return;
-
-            try {
-                // Använder userId som dokument-ID för att säkerställa att varje användare har ett unikt dokument
-                const docRef = doc(highscoresCollection, userId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    // Spelaren finns, uppdatera poängen om den nya är högre
-                    if (userScore > docSnap.data().score) {
-                        await setDoc(docRef, {
-                            name: name,
-                            score: userScore,
-                            userId: userId
-                        });
-                        console.log("Poäng uppdaterad!");
-                    } else {
-                        console.log("Ny poäng är inte högre, poängen uppdaterades inte.");
-                    }
-                } else {
-                    // Spelaren finns inte, skapa en ny post
-                    await setDoc(docRef, {
-                        name: name,
-                        score: userScore,
-                        userId: userId
-                    });
-                    console.log("Ny poäng sparad!");
-                }
-            } catch (e) {
-                console.error("Fel vid sparande av poäng:", e);
-            }
+        function toggleLang() {
+            const newLang = currentLang === 'sv' ? 'en' : 'sv';
+            setLang(newLang);
         }
 
-        // Renderar topplistan i HTML
-        function renderHighScores(scores) {
-            highscoreList.innerHTML = '';
-            if (scores.length === 0) {
-                const li = document.createElement('li');
-                li.className = 'bg-[#2c3e50] p-3 rounded-lg mb-2 text-lg text-center shadow';
-                li.innerText = 'Inga poäng än';
-                highscoreList.appendChild(li);
-                return;
-            }
-            scores.slice(0, 10).forEach((scoreData, index) => { // Visa bara de 10 bästa
-                const li = document.createElement('li');
-                let colorClass = 'text-white';
-                if (index === 0) colorClass = 'text-yellow-400';
-                else if (index === 1) colorClass = 'text-gray-400';
-                else if (index === 2) colorClass = 'text-amber-700';
-
-                li.className = `bg-[#2c3e50] p-3 rounded-lg mb-2 flex justify-between items-center text-lg font-bold shadow ${colorClass}`;
-                li.innerHTML = `<span>${scoreData.name}</span><span>${scoreData.score}</span>`;
-                highscoreList.appendChild(li);
-            });
-        }
-
-        // --- Spellogikfunktioner ---
-
-        // Spelkonstanter
-        const CANVAS_SIZE = 400;
-        const GRID_SIZE = 20;
-        const CELL_SIZE = CANVAS_SIZE / GRID_SIZE;
-        const INITIAL_SPEED = 150;
-        const SPEED_INCREMENT = 5;
-
-        // Speltillståndsvariabler
-        let snake = [];
-        let food = {};
-        let direction = { x: 1, y: 0 };
-        let score = 0;
-        let gameSpeed = INITIAL_SPEED;
-        let gameLoop = null;
-        let isGameOver = false;
-        let isGameStarted = false;
-
-        // Hämta DOM-element
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.getElementById('score');
-        const startButton = document.getElementById('startButton');
-        const controlsInfo = document.getElementById('controls-info');
-        const highscoreList = document.getElementById('highscore-list');
-        const gameContainer = document.getElementById('game-container');
-        
-        canvas.width = CANVAS_SIZE;
-        canvas.height = CANVAS_SIZE;
-
-        // Initierar spelets tillstånd
-        function initializeGame() {
-            snake = [{ x: 10, y: 10 }];
-            food = generateFood();
-            direction = { x: 1, y: 0 };
-            score = 0;
-            gameSpeed = INITIAL_SPEED;
-            isGameOver = false;
-            scoreElement.innerText = score;
-            startButton.innerText = 'Starta spel';
-            controlsInfo.style.display = 'block';
-            
-            const scoreForm = document.getElementById('score-form');
-            if (scoreForm) {
-                scoreForm.remove();
-            }
-            render();
-        }
-
-        // Genererar mat på en slumpmässig plats
-        function generateFood() {
-            let newFood;
-            do {
-                newFood = {
-                    x: Math.floor(Math.random() * GRID_SIZE),
-                    y: Math.floor(Math.random() * GRID_SIZE)
-                };
-            } while (isPositionOnSnake(newFood));
-            return newFood;
-        }
-
-        // Kontrollerar om en position är på ormen
-        function isPositionOnSnake(pos) {
-            return snake.some(segment => segment.x === pos.x && segment.y === pos.y);
-        }
-
-        // Huvuduppdateringsfunktion för spelet
-        function update() {
-            if (isGameOver) {
-                return;
-            }
-
-            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
-
-            if (
-                head.x < 0 || head.x >= GRID_SIZE ||
-                head.y < 0 || head.y >= GRID_SIZE ||
-                isPositionOnSnake(head)
-            ) {
-                endGame();
-                return;
-            }
-
-            snake.unshift(head);
-
-            if (head.x === food.x && head.y === food.y) {
-                score++;
-                scoreElement.innerText = score;
-                food = generateFood();
-                gameSpeed = Math.max(50, gameSpeed - SPEED_INCREMENT);
-                clearInterval(gameLoop);
-                gameLoop = setInterval(update, gameSpeed);
-            } else {
-                snake.pop();
-            }
-
-            render();
-        }
-
-        // Renderar spelets tillstånd på canvas
-        function render() {
-            ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-            ctx.fillStyle = '#e74c3c';
-            ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-            
-            snake.forEach((segment, index) => {
-                ctx.fillStyle = index === 0 ? '#1abc9c' : '#16a085';
-                ctx.fillRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                ctx.strokeStyle = '#2c3e50';
-                ctx.strokeRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-            });
-        }
-
-        // Avslutar spelet och visar formulär för poäng
-        function endGame() {
-            isGameOver = true;
-            isGameStarted = false;
-            clearInterval(gameLoop);
-            startButton.innerText = 'Spela igen';
-            showScoreForm(score);
-        }
-
-        // Visar formuläret för att spara poängen
-        function showScoreForm(finalScore) {
-            let scoreForm = document.getElementById('score-form');
-            if (!scoreForm) {
-                scoreForm = document.createElement('div');
-                scoreForm.id = 'score-form';
-                scoreForm.className = 'flex flex-col gap-4 mt-5';
-                scoreForm.innerHTML = `
-                    <div class="text-xl font-semibold">Bra jobbat! Din poäng är: ${finalScore}</div>
-                    <input type="text" id="playerName" placeholder="Skriv in ditt namn" required class="p-3 rounded-lg border border-[#7f8c8d] bg-[#2c3e50] text-[#ecf0f1] focus:outline-none focus:ring-2 focus:ring-[#3498db]">
-                    <button id="saveScoreButton" class="w-full bg-[#3498db] hover:bg-[#2980b9] text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all duration-300">Spara poäng</button>
-                `;
-                gameContainer.appendChild(scoreForm);
-
-                document.getElementById('saveScoreButton').addEventListener('click', () => {
-                    const playerNameInput = document.getElementById('playerName');
-                    const name = playerNameInput.value.trim();
-                    if (name) {
-                        saveHighScore(name, finalScore);
-                        scoreForm.remove();
-                        isGameStarted = false;
-                        startButton.innerText = 'Starta spel';
-                        controlsInfo.style.display = 'block';
-                    } else {
-                        playerNameInput.classList.add('border-red-500');
-                    }
-                });
-            }
-        }
-
-        // --- Händelselyssnare och spelinitiering ---
-
-        // Hanterar tangentbordsinmatning
-        function handleKeydown(event) {
-            if (!isGameStarted || isGameOver) return;
-            
-            const key = event.key;
-            let newDirection = { x: direction.x, y: direction.y };
-
-            switch (key) {
-                case 'ArrowUp':
-                    if (direction.y !== 1) { newDirection = { x: 0, y: -1 }; }
-                    break;
-                case 'ArrowDown':
-                    if (direction.y !== -1) { newDirection = { x: 0, y: 1 }; }
-                    break;
-                case 'ArrowLeft':
-                    if (direction.x !== 1) { newDirection = { x: -1, y: 0 }; }
-                    break;
-                case 'ArrowRight':
-                    if (direction.x !== -1) { newDirection = { x: 1, y: 0 }; }
-                    break;
-            }
-            if (newDirection.x !== direction.x || newDirection.y !== direction.y) {
-                direction = newDirection;
-            }
-        }
-
-        // Startknappens hanterare
-        startButton.addEventListener('click', () => {
-            if (!isGameStarted) {
-                isGameStarted = true;
-                initializeGame();
-                startButton.innerText = 'Spelar...';
-                controlsInfo.style.display = 'none';
-                gameLoop = setInterval(update, gameSpeed);
-            } else if (isGameOver) {
-                isGameStarted = true;
-                initializeGame();
-                gameLoop = setInterval(update, gameSpeed);
-                startButton.innerText = 'Spelar...';
-                controlsInfo.style.display = 'none';
-            }
+        // Set initial language when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setLang('sv');
         });
-
-        // Lägger till händelselyssnare
-        document.addEventListener('keydown', handleKeydown);
-
-        // Körs när fönstret laddats
-        window.onload = function() {
-            if (initializeFirebase()) {
-                loadHighScores();
-                initializeGame();
-            } else {
-                const highscoreContainer = document.getElementById('highscore-container');
-                const errorMessage = document.createElement('p');
-                errorMessage.className = 'text-center text-red-500 mt-4 font-bold';
-                errorMessage.innerText = 'Kan inte ladda topplistan. Vänligen lägg till din Firebase-konfiguration i koden.';
-                highscoreContainer.appendChild(errorMessage);
-            }
-        };
     </script>
 </body>
 </html>

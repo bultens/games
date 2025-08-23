@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexagon | Spel</title>
+    <!-- Fonts from the original page -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- New font for the 80s theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Shared styles from the original page */
+        :root {
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2b2b2b;
+            --text-color: #f5f5f5;
+            --accent-color: #3498db;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* Retro game specific styles */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            background-color: #0d0d0d;
+            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+        }
+
+        /* Back button styling */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #00ffff; /* Neon Cyan */
+            font-family: 'Press Start 2P', cursive;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff, inset 0 0 10px #00ffff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            text-shadow: 0 0 5px #00ffff;
+            z-index: 10;
+        }
+
+        .back-button:hover {
+            color: #ff00ff; /* Neon Pink */
+            background: rgba(255, 0, 255, 0.2);
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 15px #ff00ff;
+            transform: scale(1.05);
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        
+        /* Version tag styling */
+        .version-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Press Start 2P', cursive;
+            color: rgba(0, 255, 255, 0.5); /* Faded neon cyan */
+            text-shadow: 0 0 2px rgba(0, 255, 255, 0.2);
+            font-size: 0.8em;
+            z-index: 10;
+        }
+
+        /* Game canvas and UI */
+        canvas {
+            background-color: #000;
+            border: 5px solid #ff00ff;
+            box-shadow: 0 0 20px #ff00ff, inset 0 0 20px #ff00ff;
+            border-radius: 8px;
+            margin-top: 20px;
+            /* Make canvas focusable to handle keyboard events */
+            outline: none;
+        }
+
+        #game-info {
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            margin-top: 20px;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        #score-display, #high-score-display {
+            font-size: 1.5em;
+        }
+
+        #message {
+            font-size: 1.2em;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        
+        #instructions {
+            font-family: 'Press Start 2P', cursive;
+            color: #f5f5f5;
+            text-shadow: 0 0 2px #f5f5f5;
+            margin-top: 40px;
+            max-width: 600px;
+            line-height: 1.8;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+            border-radius: 8px;
+        }
+        #instructions h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        #instructions li {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background-color: #1a1a1a;
+            border: 2px solid #ff00ff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px #ff00ff;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .modal h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .modal-button {
+            background: #00ffff;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease-in-out;
+            margin-top: 20px;
+            text-shadow: none;
+        }
+
+        .modal-button:hover {
+            background: #ff00ff;
+            color: #fff;
+            box-shadow: 0 0 10px #ff00ff;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-button">Tillbaka till menyn</a>
+    <span class="version-tag">Ver 1.0</span>
+
+    <div class="game-container">
+        <div id="game-info">
+            <h1>Hexagon</h1>
+            <p>
+                <span id="score-display">Poäng: 0</span> | 
+                <span id="high-score-display">Highscore: 0</span>
+            </p>
+            <p id="message">Klicka för att börja!</p>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600" tabindex="1"></canvas>
+        
+        <div id="instructions">
+            <h2>Hur man spelar</h2>
+            <ul>
+                <li>Undvik de väggar som strålar ut från mitten.</li>
+                <li>Kontrollera din spelare genom att rotera hexagonen.</li>
+                <li>Använd **vänster och höger piltangent** på datorn.</li>
+                <li>På mobilen, **svep åt vänster eller höger** på skärmen.</li>
+                <li>Överlev så länge som möjligt för att få högsta poäng!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modals for game messages -->
+    <div id="gameOverModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Game Over</h2>
+            <p>Din poäng: <span id="finalScore">0</span></p>
+            <p id="newHighScoreMessage" style="color: #ff00ff; display: none;">Ny highscore!</p>
+            <button class="modal-button" onclick="window.location.reload()">Spela igen</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK-skript -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // --- FIREBASE SETUP ---
+        // Your Firebase configuration from the provided file
+        const firebaseConfig = {
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+            authDomain: "kumlaskytte.firebaseapp.com",
+            projectId: "kumlaskytte",
+            storageBucket: "kumlaskytte.firebasestorage.app",
+            messagingSenderId: "571676149705",
+            appId: "1:571676149705:web:a0ace868f4680298a78a18",
+            measurementId: "G-KSJ9NLNDBX"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let highScore = 0;
+        
+        // Sign in anonymously to get a user ID
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("Firebase ansluten. Användar-ID:", userId);
+                await getHighScore();
+            } else {
+                console.log("Firebase ansluten. Loggar in anonymt...");
+                await signInAnonymously(auth);
+            }
+        });
+
+        const getHighScore = async () => {
+            if (!userId) {
+                console.error("Användar-ID saknas, kan inte hämta highscore.");
+                return;
+            }
+            try {
+                // Highscores will be stored under a 'games' collection, with a document for each game.
+                const gameDocRef = doc(db, "games", "hexagon");
+                const docSnap = await getDoc(gameDocRef);
+                if (docSnap.exists() && docSnap.data().highScore) {
+                    highScore = docSnap.data().highScore;
+                    document.getElementById("high-score-display").textContent = `Highscore: ${highScore}`;
+                    console.log("Highscore hämtad från Firebase:", highScore);
+                } else {
+                    console.log("Ingen highscore hittades för Hexagon.");
+                }
+            } catch (e) {
+                console.error("Fel vid hämtning av highscore:", e);
+            }
+        };
+
+        const saveHighScore = async (newScore) => {
+            if (!userId) {
+                console.error("Användar-ID saknas, kan inte spara highscore.");
+                return;
+            }
+            // Only save if the new score is a new high score
+            if (newScore > highScore) {
+                try {
+                    const gameDocRef = doc(db, "games", "hexagon");
+                    await setDoc(gameDocRef, { highScore: newScore }, { merge: true });
+                    console.log("Ny highscore sparad till Firebase:", newScore);
+                    highScore = newScore;
+                    document.getElementById("high-score-display").textContent = `Highscore: ${highScore}`;
+                    document.getElementById("newHighScoreMessage").style.display = "block";
+                } catch (e) {
+                    console.error("Fel vid sparande av highscore:", e);
+                }
+            }
+        };
+
+
+        // --- GAME LOGIC (HEXAGON) ---
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score-display");
+        const messageDisplay = document.getElementById("message");
+        const gameOverModal = document.getElementById("gameOverModal");
+        const finalScoreDisplay = document.getElementById("finalScore");
+
+        let gameRunning = false;
+        let score = 0;
+
+        // Game parameters
+        const hexagonRadius = 150;
+        const playerRadius = 10;
+        let playerAngle = 0;
+        const playerSpeed = 0.05;
+        const wallWidth = 10;
+        const wallSpeed = 1;
+        const maxWallSpeed = 5;
+
+        let walls = [];
+        let wallTimer = 0;
+        const wallInterval = 60; // How often a new wall is added
+
+        const gameLoop = () => {
+            if (!gameRunning) return;
+
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Move and draw player
+            playerAngle += playerSpeed;
+            const playerX = canvas.width / 2 + Math.cos(playerAngle) * hexagonRadius;
+            const playerY = canvas.height / 2 + Math.sin(playerAngle) * hexagonRadius;
+            ctx.beginPath();
+            ctx.arc(playerX, playerY, playerRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#ff00ff"; // Neon pink
+            ctx.fill();
+
+            // Draw the hexagon
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const x = canvas.width / 2 + Math.cos(angle) * hexagonRadius;
+                const y = canvas.height / 2 + Math.sin(angle) * hexagonRadius;
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#00ffff"; // Neon cyan
+            ctx.stroke();
+
+            // Update and draw walls
+            walls = walls.filter(wall => {
+                wall.distance -= wallSpeed;
+                // Check for collision with the player
+                const distanceToPlayer = Math.abs(wall.distance - hexagonRadius);
+                if (distanceToPlayer < playerRadius + 5 && distanceToPlayer > 0) {
+                    const wallStartAngle = (Math.PI / 3) * wall.side;
+                    const wallEndAngle = wallStartAngle + (Math.PI / 3);
+                    const playerAngleInWall = playerAngle % (Math.PI * 2);
+                    
+                    if (playerAngleInWall > wallStartAngle && playerAngleInWall < wallEndAngle) {
+                         // Collision! Game over.
+                         gameOver();
+                         return false;
+                    }
+                }
+
+                // Check for successful pass
+                if (wall.distance < -10) {
+                    score++;
+                    scoreDisplay.textContent = `Poäng: ${score}`;
+                    return false; // Remove wall
+                }
+                
+                // Draw the wall
+                ctx.beginPath();
+                const startAngle = (Math.PI / 3) * wall.side;
+                const endAngle = startAngle + (Math.PI / 3);
+                const wallX1 = canvas.width / 2 + Math.cos(startAngle) * wall.distance;
+                const wallY1 = canvas.height / 2 + Math.sin(startAngle) * wall.distance;
+                const wallX2 = canvas.width / 2 + Math.cos(endAngle) * wall.distance;
+                const wallY2 = canvas.height / 2 + Math.sin(endAngle) * wall.distance;
+                ctx.moveTo(wallX1, wallY1);
+                ctx.lineTo(wallX2, wallY2);
+                ctx.lineWidth = wallWidth;
+                ctx.strokeStyle = "#ff00ff";
+                ctx.stroke();
+
+                return true; // Keep wall
+            });
+
+            // Add new walls
+            wallTimer++;
+            if (wallTimer > wallInterval) {
+                const side = Math.floor(Math.random() * 6);
+                const newWall = { side: side, distance: canvas.width / 2 };
+                walls.push(newWall);
+                wallTimer = 0;
+            }
+
+            requestAnimationFrame(gameLoop);
+        };
+
+        const startGame = () => {
+            if (gameRunning) return;
+            gameRunning = true;
+            score = 0;
+            walls = [];
+            scoreDisplay.textContent = `Poäng: 0`;
+            messageDisplay.textContent = "";
+            gameOverModal.style.display = "none";
+            // Set canvas focus to enable keyboard controls
+            canvas.focus(); 
+            gameLoop();
+        };
+
+        const gameOver = () => {
+            gameRunning = false;
+            finalScoreDisplay.textContent = score;
+            gameOverModal.style.display = "flex";
+            saveHighScore(score);
+        };
+
+        // Event listeners
+        canvas.addEventListener("click", () => {
+            if (!gameRunning) {
+                startGame();
+            }
+        });
+        
+        // Touch events for mobile
+        let touchStartX = 0;
+        canvas.addEventListener("touchstart", (e) => {
+            touchStartX = e.touches[0].clientX;
+            if (!gameRunning) {
+                startGame();
+            }
+        });
+        
+        canvas.addEventListener("touchmove", (e) => {
+            if (!gameRunning) return;
+            const touchMoveX = e.touches[0].clientX;
+            const deltaX = touchMoveX - touchStartX;
+            if (deltaX > 5) {
+                // Swipe right
+                playerAngle += 0.1; // Rotate clockwise
+            } else if (deltaX < -5) {
+                // Swipe left
+                playerAngle -= 0.1; // Rotate counter-clockwise
+            }
+            touchStartX = touchMoveX;
+        });
+
+        // Keyboard controls
+        document.addEventListener("keydown", (e) => {
+            if (!gameRunning) {
+                startGame();
+                return;
+            }
+            if (e.key === "ArrowLeft") {
+                playerAngle -= 0.1;
+                console.log("ArrowLeft key pressed.");
+            } else if (e.key === "ArrowRight") {
+                playerAngle += 0.1;
+                console.log("ArrowRight key pressed.");
+            }
+        });
+
+    </script>
+</body>
+</html>
