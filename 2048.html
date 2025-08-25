@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 | Spel</title>
+    <!-- Fonts from the original page -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- New font for the 80s theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Shared styles from the original page */
+        :root {
+            --primary-bg: #1a1a1a;
+            --secondary-bg: #2b2b2b;
+            --text-color: #f5f5f5;
+            --accent-color: #3498db;
+        }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* Retro game specific styles */
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 20px;
+            background-color: #0d0d0d;
+            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+        }
+
+        /* Back button styling */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            text-decoration: none;
+            color: #00ffff; /* Neon Cyan */
+            font-family: 'Press Start 2P', cursive;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff, inset 0 0 10px #00ffff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            text-shadow: 0 0 5px #00ffff;
+            z-index: 10;
+        }
+
+        .back-button:hover {
+            color: #ff00ff; /* Neon Pink */
+            background: rgba(255, 0, 255, 0.2);
+            border-color: #ff00ff;
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 15px #ff00ff;
+            transform: scale(1.05);
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        
+        /* Version tag styling */
+        .version-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Press Start 2P', cursive;
+            color: rgba(0, 255, 255, 0.5); /* Faded neon cyan */
+            text-shadow: 0 0 2px rgba(0, 255, 255, 0.2);
+            font-size: 0.8em;
+            z-index: 10;
+        }
+
+        /* Game specific styles */
+        #game-info {
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            margin-top: 20px;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        #score-display, #high-score-display {
+            font-size: 1.5em;
+        }
+
+        #message {
+            font-size: 1.2em;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #bbada0;
+            border-radius: 6px;
+            padding: 10px;
+            position: relative;
+            margin-top: 20px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .tile {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1 / 1;
+            background: #cdc1b4;
+            border-radius: 3px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2em;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #776e65;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        /* Specific tile colors */
+        .tile-2 { background: #eee4da; color: #776e65; }
+        .tile-4 { background: #ede0c8; color: #776e65; }
+        .tile-8 { background: #f2b179; color: #f9f6f2; }
+        .tile-16 { background: #f59563; color: #f9f6f2; }
+        .tile-32 { background: #f67c5f; color: #f9f6f2; }
+        .tile-64 { background: #f65e3b; color: #f9f6f2; }
+        .tile-128 { background: #edcf72; color: #f9f6f2; }
+        .tile-256 { background: #edcc61; color: #f9f6f2; }
+        .tile-512 { background: #edc850; color: #f9f6f2; }
+        .tile-1024 { background: #edc53f; color: #f9f6f2; }
+        .tile-2048 { background: #edc22e; color: #f9f6f2; }
+        
+        .tile-new {
+            animation: tile-appear 0.2s ease-in-out;
+        }
+        @keyframes tile-appear {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal {
+            background-color: #1a1a1a;
+            border: 2px solid #ff00ff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px #ff00ff;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+            text-shadow: 0 0 5px #00ffff;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .modal-button {
+            background: #00ffff;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s ease-in-out;
+            margin-top: 20px;
+            text-shadow: none;
+        }
+
+        .modal-button:hover {
+            background: #ff00ff;
+            color: #fff;
+            box-shadow: 0 0 10px #ff00ff;
+        }
+
+        /* New modal for initials */
+        #initialsModal h2 {
+            color: #f5f5f5;
+        }
+        .initials-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .initial-char {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border: 2px solid #00ffff;
+            background: rgba(0, 0, 0, 0.4);
+            color: #f5f5f5;
+            transition: all 0.2s;
+            box-shadow: inset 0 0 5px #00ffff;
+        }
+        .initial-char.selected {
+            border-color: #ff00ff;
+            color: #ff00ff;
+            box-shadow: 0 0 10px #ff00ff, inset 0 0 10px #ff00ff;
+            transform: scale(1.1);
+        }
+        #instructions {
+            font-family: 'Press Start 2P', cursive;
+            color: #f5f5f5;
+            text-shadow: 0 0 2px #f5f5f5;
+            margin-top: 40px;
+            max-width: 600px;
+            line-height: 1.8;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+            border-radius: 8px;
+        }
+        #instructions h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+        }
+        #instructions li {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-button">Tillbaka till menyn</a>
+    <span class="version-tag">Ver 1.5</span>
+
+    <div class="game-container">
+        <div id="game-info">
+            <h1>2048</h1>
+            <p>
+                <span id="score-display">Poäng: 0</span> | 
+                <span id="high-score-display">Highscore: 0</span>
+            </p>
+        </div>
+        
+        <div id="game-board"></div>
+
+        <div id="instructions">
+            <h2>Hur man spelar</h2>
+            <ul>
+                <li>Flytta brickor genom att använda piltangenterna på datorn eller svepa på skärmen på mobilen.</li>
+                <li>När två brickor med samma nummer nuddar varandra, slås de samman till en bricka med dubbelt så högt värde.</li>
+                <li>Målet är att skapa en bricka med nummer 2048.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Modals for game messages -->
+    <div id="gameOverModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Game Over</h2>
+            <p>Din poäng: <span id="finalScore">0</span></p>
+            <p id="newHighScoreMessage" style="color: #ff00ff; display: none;">Ny highscore!</p>
+            <button class="modal-button" onclick="window.location.reload()">Spela igen</button>
+        </div>
+    </div>
+
+    <!-- New modal for initials -->
+    <div id="initialsModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Grattis! Ny highscore!</h2>
+            <p>Ange dina initialer (3 bokstäver):</p>
+            <div class="initials-input-container">
+                <span id="initial-char-0" class="initial-char selected">A</span>
+                <span id="initial-char-1" class="initial-char">A</span>
+                <span id="initial-char-2" class="initial-char">A</span>
+            </div>
+            <button class="modal-button" id="saveInitialsBtn">Spara poäng</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK-skript -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // --- FIREBASE SETUP ---
+        // Din Firebase-konfiguration från den tillhandahållna filen
+        const firebaseConfig = {
+            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
+            authDomain: "kumlaskytte.firebaseapp.com",
+            projectId: "kumlaskytte",
+            storageBucket: "kumlaskytte.firebasestorage.app",
+            messagingSenderId: "571676149705",
+            appId: "1:571676149705:web:a0ace868f4680298a78a18",
+            measurementId: "G-KSJ9NLNDBX"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let topTenHighscores = [];
+        
+        // Logga in anonymt för att få ett användar-ID
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("Firebase ansluten. Användar-ID:", userId);
+                await getHighScores();
+            } else {
+                console.log("Firebase ansluten. Loggar in anonymt...");
+                await signInAnonymously(auth);
+            }
+        });
+
+        const getHighScores = async () => {
+            const highscoreListEl = document.getElementById("highscore-list");
+            
+            if (!db) {
+                console.error("Databasen är inte ansluten.");
+                return;
+            }
+
+            try {
+                const scoresRef = collection(db, "highscores", "2048", "scores");
+                const q = query(scoresRef, orderBy("score", "desc"));
+                const querySnapshot = await getDocs(q);
+
+                topTenHighscores = [];
+                querySnapshot.forEach(doc => {
+                    topTenHighscores.push({ id: doc.id, ...doc.data() });
+                });
+                
+                if (topTenHighscores.length > 0) {
+                    document.getElementById("high-score-display").textContent = `Highscore: ${topTenHighscores[0].score}`;
+                }
+
+            } catch (e) {
+                console.error("Fel vid hämtning av highscores:", e);
+            }
+        };
+
+        const saveHighScore = async (newScore, initials) => {
+            if (!userId) {
+                console.error("Användar-ID saknas, kan inte spara highscore.");
+                return;
+            }
+            try {
+                const scoresRef = collection(db, "highscores", "2048", "scores");
+                
+                await addDoc(scoresRef, {
+                    initials: initials.toUpperCase(),
+                    score: newScore,
+                    timestamp: new Date()
+                });
+
+                console.log("Ny highscore sparad till Firebase:", newScore);
+                await getHighScores(); 
+            } catch (e) {
+                console.error("Fel vid sparande av highscore:", e);
+            }
+        };
+
+
+        // --- GAME LOGIC (2048) ---
+        const boardElement = document.getElementById('game-board');
+        const scoreDisplay = document.getElementById('score-display');
+        const gameOverModal = document.getElementById("gameOverModal");
+        const initialsModal = document.getElementById("initialsModal");
+        const finalScoreDisplay = document.getElementById("finalScore");
+
+        const size = 4;
+        let board = [];
+        let score = 0;
+        let isGameOver = false;
+        let hasWon = false;
+
+        // Initials entry
+        let initialsEntryMode = false;
+        const characterSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split('');
+        let currentInitials = ['A', 'A', 'A'];
+        let selectedInitialIndex = 0;
+
+        const renderInitials = () => {
+            document.getElementById('initial-char-0').textContent = currentInitials[0];
+            document.getElementById('initial-char-1').textContent = currentInitials[1];
+            document.getElementById('initial-char-2').textContent = currentInitials[2];
+
+            document.querySelectorAll('.initial-char').forEach((el, index) => {
+                el.classList.toggle('selected', index === selectedInitialIndex);
+            });
+        };
+
+        const initGame = () => {
+            board = Array(size).fill(0).map(() => Array(size).fill(0));
+            score = 0;
+            isGameOver = false;
+            hasWon = false;
+            scoreDisplay.textContent = `Poäng: 0`;
+            gameOverModal.style.display = "none";
+            initialsModal.style.display = "none";
+            addRandomTile();
+            addRandomTile();
+            renderBoard(); 
+        };
+
+        const renderBoard = () => {
+            boardElement.innerHTML = '';
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const value = board[y][x];
+                    const tile = document.createElement('div');
+                    tile.classList.add('tile');
+                    if (value > 0) {
+                        tile.classList.add(`tile-${value}`);
+                        tile.textContent = value;
+                    }
+                    boardElement.appendChild(tile);
+                }
+            }
+        };
+
+        const addRandomTile = () => {
+            const emptyTiles = [];
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if (board[y][x] === 0) {
+                        emptyTiles.push({x, y});
+                    }
+                }
+            }
+            if (emptyTiles.length > 0) {
+                const randomTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                board[randomTile.y][randomTile.x] = Math.random() < 0.9 ? 2 : 4;
+            }
+        };
+        
+        const slide = (row) => {
+            let arr = row.filter(val => val);
+            let missing = size - arr.length;
+            let zeros = Array(missing).fill(0);
+            arr = zeros.concat(arr);
+            return arr;
+        };
+
+        const combineRight = (row) => {
+            let newRow = [...row];
+            for (let i = size - 1; i > 0; i--) {
+                if (newRow[i] === newRow[i - 1] && newRow[i] !== 0) {
+                    newRow[i] *= 2;
+                    score += newRow[i];
+                    newRow[i - 1] = 0;
+                }
+            }
+            return newRow;
+        };
+
+        const combineLeft = (row) => {
+            let newRow = [...row];
+            for (let i = 0; i < size - 1; i++) {
+                if (newRow[i] === newRow[i + 1] && newRow[i] !== 0) {
+                    newRow[i] *= 2;
+                    score += newRow[i];
+                    newRow[i + 1] = 0;
+                }
+            }
+            return newRow;
+        };
+
+        const moveRight = () => {
+            let changed = false;
+            for (let y = 0; y < size; y++) {
+                let oldRow = [...board[y]];
+                let newRow = slide(board[y]);
+                newRow = combineRight(newRow);
+                newRow = slide(newRow);
+                if (JSON.stringify(oldRow) !== JSON.stringify(newRow)) {
+                    changed = true;
+                }
+                board[y] = newRow;
+            }
+            return changed;
+        };
+        
+        const moveLeft = () => {
+            let changed = false;
+            for (let y = 0; y < size; y++) {
+                let oldRow = [...board[y]];
+                let newRow = board[y].filter(val => val);
+                newRow = combineLeft(newRow);
+                let missing = size - newRow.length;
+                let zeros = Array(missing).fill(0);
+                newRow = newRow.concat(zeros);
+                if (JSON.stringify(oldRow) !== JSON.stringify(newRow)) {
+                    changed = true;
+                }
+                board[y] = newRow;
+            }
+            return changed;
+        };
+
+        const moveUp = () => {
+            let changed = false;
+            let newBoard = Array(size).fill(0).map(() => Array(size).fill(0));
+            for (let x = 0; x < size; x++) {
+                let col = [];
+                for (let y = 0; y < size; y++) {
+                    col.push(board[y][x]);
+                }
+                let oldCol = [...col];
+                let newCol = col.filter(val => val);
+                newCol = combineLeft(newCol);
+                let missing = size - newCol.length;
+                let zeros = Array(missing).fill(0);
+                newCol = newCol.concat(zeros);
+                if (JSON.stringify(oldCol) !== JSON.stringify(newCol)) {
+                    changed = true;
+                }
+                for (let y = 0; y < size; y++) {
+                    newBoard[y][x] = newCol[y];
+                }
+            }
+            board = newBoard;
+            return changed;
+        };
+
+        const moveDown = () => {
+            let changed = false;
+            let newBoard = Array(size).fill(0).map(() => Array(size).fill(0));
+            for (let x = 0; x < size; x++) {
+                let col = [];
+                for (let y = 0; y < size; y++) {
+                    col.push(board[y][x]);
+                }
+                let oldCol = [...col];
+                let newCol = col.filter(val => val);
+                newCol = combineRight(newCol.reverse()).reverse(); // Fixa
+                let missing = size - newCol.length;
+                let zeros = Array(missing).fill(0);
+                newCol = zeros.concat(newCol);
+                if (JSON.stringify(oldCol) !== JSON.stringify(newCol)) {
+                    changed = true;
+                }
+                for (let y = 0; y < size; y++) {
+                    newBoard[y][x] = newCol[y];
+                }
+            }
+            board = newBoard;
+            return changed;
+        };
+
+
+        const checkGameOver = () => {
+            // Check for empty tiles
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if (board[y][x] === 0) {
+                        return false;
+                    }
+                }
+            }
+
+            // Check for possible moves
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if (x < size - 1 && board[y][x] === board[y][x + 1]) {
+                        return false;
+                    }
+                    if (y < size - 1 && board[y][x] === board[y + 1][x]) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+        
+        const gameOver = () => {
+            isGameOver = true;
+            finalScoreDisplay.textContent = score;
+            gameOverModal.style.display = "flex";
+
+            if (score > 0 && (topTenHighscores.length < 10 || score > topTenHighscores[topTenHighscores.length - 1].score)) {
+                document.getElementById("newHighScoreMessage").style.display = "block";
+                initialsEntryMode = true;
+                
+                setTimeout(() => {
+                    gameOverModal.style.display = "none";
+                    initialsModal.style.display = "flex";
+                    selectedInitialIndex = 0; 
+                    renderInitials();
+                }, 2000); 
+            } else {
+                saveHighScore(score, "---"); 
+            }
+        };
+
+        const handleMove = (direction) => {
+            if (isGameOver || initialsEntryMode) return;
+
+            let moved = false;
+            let originalBoard = JSON.stringify(board);
+            let originalScore = score; // Spara poängen
+
+            if (direction === 'left') {
+                moved = moveLeft();
+            } else if (direction === 'right') {
+                moved = moveRight();
+            } else if (direction === 'up') {
+                moved = moveUp();
+            } else if (direction === 'down') {
+                moved = moveDown();
+            }
+
+            if (moved) {
+                addRandomTile();
+                renderBoard();
+                scoreDisplay.textContent = `Poäng: ${score}`; // Uppdatera poängen här
+            }
+            
+            if (checkGameOver()) {
+                gameOver();
+            }
+        };
+        
+        // Event listener for initials
+        document.getElementById("saveInitialsBtn").addEventListener("click", () => {
+            const initials = currentInitials.join('');
+            saveHighScore(score, initials);
+            initialsEntryMode = false;
+            initialsModal.style.display = "none";
+        });
+
+        // Event listeners for keyboard
+        document.addEventListener('keydown', (e) => {
+            if (initialsEntryMode) {
+                const charIndex = characterSet.indexOf(currentInitials[selectedInitialIndex]);
+                if (e.key === "ArrowLeft") {
+                    selectedInitialIndex = (selectedInitialIndex - 1 + 3) % 3;
+                    renderInitials();
+                } else if (e.key === "ArrowRight") {
+                    selectedInitialIndex = (selectedInitialIndex + 1) % 3;
+                    renderInitials();
+                } else if (e.key === "ArrowUp") {
+                    const newCharIndex = (charIndex + 1) % characterSet.length;
+                    currentInitials[selectedInitialIndex] = characterSet[newCharIndex];
+                    renderInitials();
+                } else if (e.key === "ArrowDown") {
+                    const newCharIndex = (charIndex - 1 + characterSet.length) % characterSet.length;
+                    currentInitials[selectedInitialIndex] = characterSet[newCharIndex];
+                    renderInitials();
+                } else if (e.key === "Enter") {
+                    document.getElementById("saveInitialsBtn").click();
+                }
+            } else {
+                 switch (e.key) {
+                    case 'ArrowUp':
+                        handleMove('up');
+                        break;
+                    case 'ArrowDown':
+                        handleMove('down');
+                        break;
+                    case 'ArrowLeft':
+                        handleMove('left');
+                        break;
+                    case 'ArrowRight':
+                        handleMove('right');
+                        break;
+                }
+            }
+        });
+        
+        // Touch events for mobile
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        boardElement.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        boardElement.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0) {
+                    handleMove('right');
+                } else {
+                    handleMove('left');
+                }
+            } else {
+                if (dy > 0) {
+                    handleMove('down');
+                } else {
+                    handleMove('up');
+                }
+            }
+        });
+
+        window.onload = function() {
+            initGame();
+        };
+
+    </script>
+</body>
+</html>
