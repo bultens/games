@@ -9,7 +9,7 @@
     <!-- New font for the 80s theme -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* Shared styles from the original page */
+        /* Base styles for the page background and text */
         :root {
             --primary-bg: #1a1a1a;
             --secondary-bg: #2b2b2b;
@@ -23,9 +23,10 @@
             margin: 0;
             padding: 0;
             line-height: 1.6;
+            overflow: hidden; /* Prevent scrollbars from showing */
         }
 
-        /* Retro game specific styles */
+        /* Retro game container styling */
         .game-container {
             display: flex;
             flex-direction: column;
@@ -56,7 +57,6 @@
             text-shadow: 0 0 5px #00ffff;
             z-index: 10;
         }
-
         .back-button:hover {
             color: #ff00ff; /* Neon Pink */
             background: rgba(255, 0, 255, 0.2);
@@ -172,10 +172,6 @@
             box-shadow: 0 0 10px #ff00ff;
         }
 
-        .game-controls button:hover {
-            background: rgba(255, 0, 255, 0.4);
-        }
-        
         .game-controls button.selected {
             background: rgba(0, 255, 255, 0.4);
             border-color: #00ffff;
@@ -232,12 +228,84 @@
             box-shadow: 0 0 20px #ff00ff, inset 0 0 20px #ff00ff;
         }
         
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none; /* Initially hidden */
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .modal-overlay.active {
+            display: flex; /* Show when active */
+            opacity: 1;
+        }
+        
+        .modal {
+            background: #1a1a1a;
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 20px #ff00ff;
+            padding: 40px;
+            text-align: center;
+            border-radius: 10px;
+            font-family: 'Press Start 2P', cursive;
+            color: #00ffff;
+        }
+
+        .modal-button {
+            font-family: 'Press Start 2P', cursive;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: 2px solid #00ffff;
+            background: rgba(0, 255, 255, 0.2);
+            color: #00ffff;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .modal-button:hover {
+            background: rgba(255, 0, 255, 0.2);
+            border-color: #ff00ff;
+            color: #ff00ff;
+            text-shadow: 0 0 5px #ff00ff;
+            box-shadow: 0 0 10px #ff00ff;
+        }
+
+        .initials-input-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .initial-char {
+            font-size: 2em;
+            width: 1em;
+            text-align: center;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+            transition: border-color 0.2s;
+        }
+
+        .initial-char.selected {
+            border-bottom-color: #ff00ff;
+            color: #ff00ff;
+        }
+        
     </style>
 </head>
 <body>
 
     <a href="index.html" class="back-button">Tillbaka till menyn</a>
-    <span class="version-tag">Ver 2.0</span>
+    <span class="version-tag">Ver 2.4</span>
 
     <div class="game-container">
         <div id="game-info">
@@ -300,90 +368,94 @@
             <button class="modal-button" id="saveInitialsBtn">Spara poäng</button>
         </div>
     </div>
+    
+    <!-- High Score list modal -->
+    <div id="highscoreListModal" class="modal-overlay">
+        <div class="modal">
+            <h2>Highscores</h2>
+            <ol id="highscore-list" class="highscore-list"></ol>
+            <button class="modal-button" onclick="window.location.reload()">Spela igen</button>
+        </div>
+    </div>
 
     <!-- Firebase SDK-skript -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // --- FIREBASE SETUP ---
-        // Din Firebase-konfiguration från den tillhandahållna filen
-        const firebaseConfig = {
-            apiKey: "AIzaSyCorCZf8cH8vD1v47aOADdW3x0hCWlVUfw",
-            authDomain: "kumlaskytte.firebaseapp.com",
-            projectId: "kumlaskytte",
-            storageBucket: "kumlaskytte.firebasestorage.app",
-            messagingSenderId: "571676149705",
-            appId: "1:571676149705:web:a0ace868f4680298a78a18",
-            measurementId: "G-KSJ9NLNDBX"
-        };
+        // This is a global variable provided by the Canvas environment.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // Initialize Firebase
+        // --- FIREBASE SETUP ---
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         
         let userId = null;
         let topTenHighscores = [];
-        
-        // Logga in anonymt för att få ett användar-ID
+        let isAuthReady = false;
+
+        // Log in anonymously to get a user ID
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 userId = user.uid;
-                console.log("Firebase ansluten. Användar-ID:", userId);
-                await getHighScores();
+                console.log("Firebase connected. User ID:", userId);
+                isAuthReady = true;
             } else {
-                console.log("Firebase ansluten. Loggar in anonymt...");
+                console.log("Firebase connected. Signing in anonymously...");
                 await signInAnonymously(auth);
             }
         });
 
-        const getHighScores = async () => {
-            const highscoreListEl = document.getElementById("highscore-list");
-            
-            if (!db) {
-                console.error("Databasen är inte ansluten.");
-                return;
-            }
+        // Use onSnapshot for real-time updates and sort in-memory to avoid index issues.
+        const highscoresCollectionRef = collection(db, "artifacts", appId, "public", "data", "highscores");
+        const highscoresQuery = query(highscoresCollectionRef);
 
-            try {
-                const scoresRef = collection(db, "highscores", "blocktris", "scores");
-                const q = query(scoresRef, orderBy("score", "desc"));
-                const querySnapshot = await getDocs(q);
-
-                topTenHighscores = [];
-                querySnapshot.forEach(doc => {
-                    topTenHighscores.push({ id: doc.id, ...doc.data() });
+        const setupHighscoresListener = () => {
+             onSnapshot(highscoresQuery, (querySnapshot) => {
+                const scores = [];
+                querySnapshot.forEach((doc) => {
+                    scores.push({ id: doc.id, ...doc.data() });
                 });
+
+                // Sort scores in descending order in memory
+                scores.sort((a, b) => b.score - a.score);
+
+                // Take the top 10
+                topTenHighscores = scores.slice(0, 10);
                 
+                // Update highscore display
                 if (topTenHighscores.length > 0) {
                     document.getElementById("high-score-display").textContent = `Highscore: ${topTenHighscores[0].score}`;
                 }
-
-            } catch (e) {
-                console.error("Fel vid hämtning av highscores:", e);
-            }
+            });
         };
 
         const saveHighScore = async (newScore, initials) => {
             if (!userId) {
-                console.error("Användar-ID saknas, kan inte spara highscore.");
+                console.error("User ID is missing, cannot save highscore.");
                 return;
             }
             try {
-                const scoresRef = collection(db, "highscores", "blocktris", "scores");
+                // Check if the score is actually a new high score
+                const isNewHighscore = topTenHighscores.length < 10 || newScore > topTenHighscores[topTenHighscores.length - 1].score;
                 
-                await addDoc(scoresRef, {
-                    initials: initials.toUpperCase(),
-                    score: newScore,
-                    timestamp: new Date()
-                });
+                if (isNewHighscore) {
+                    await addDoc(highscoresCollectionRef, {
+                        initials: initials.toUpperCase(),
+                        score: newScore,
+                        timestamp: new Date()
+                    });
+                    console.log("New highscore saved to Firebase:", newScore);
+                } else {
+                    console.log("Score is not a new highscore, skipping save.");
+                }
 
-                console.log("Ny highscore sparad till Firebase:", newScore);
-                await getHighScores(); 
             } catch (e) {
-                console.error("Fel vid sparande av highscore:", e);
+                console.error("Error saving highscore:", e);
             }
         };
 
@@ -398,6 +470,7 @@
         const gameControlsEl = document.querySelector('.game-controls');
         const gameOverModal = document.getElementById("gameOverModal");
         const initialsModal = document.getElementById("initialsModal");
+        const highscoreListModal = document.getElementById("highscoreListModal");
         const finalScoreDisplay = document.getElementById("finalScore");
         
         const boardSize = 10;
@@ -415,23 +488,14 @@
         let selectedInitialIndex = 0;
 
         const pieces = [
-            // I
-            [[1, 1, 1, 1]],
-            [[1], [1], [1], [1]],
-            // J
-            [[1, 1, 1], [0, 0, 1]],
-            // L
-            [[1, 1, 1], [1, 0, 0]],
-            // O
-            [[1, 1], [1, 1]],
-            // S
-            [[0, 1, 1], [1, 1, 0]],
-            // T
-            [[1, 1, 1], [0, 1, 0]],
-            // Z
-            [[1, 1, 0], [0, 1, 1]],
-            // 1x1 block - Sällsynt
-            [[1]]
+            [[1, 1, 1, 1]], // I-piece
+            [[1, 1, 1], [0, 0, 1]], // J-piece
+            [[1, 1, 1], [1, 0, 0]], // L-piece
+            [[1, 1], [1, 1]], // O-piece
+            [[0, 1, 1], [1, 1, 0]], // S-piece
+            [[1, 1, 1], [0, 1, 0]], // T-piece
+            [[1, 1, 0], [0, 1, 1]], // Z-piece
+            [[1]] // 1x1 block
         ];
         
         let currentPiece = null;
@@ -453,8 +517,13 @@
             gameControlsEl.style.display = 'none';
             startGameBtn.style.display = 'none';
             rotateBtn.style.display = isHardMode ? 'none' : 'block';
-            gameOverModal.style.display = "none";
-            initialsModal.style.display = "none";
+            hideModals();
+        };
+
+        const hideModals = () => {
+            gameOverModal.classList.remove('active');
+            initialsModal.classList.remove('active');
+            highscoreListModal.classList.remove('active');
         };
 
         const renderGrid = (gridEl, size) => {
@@ -518,8 +587,8 @@
             currentPieceSize = currentPieceOriginal.reduce((sum, row) => sum + row.filter(cell => cell === 1).length, 0);
             renderNextPiece();
             
-            // Fix: Kontrollera för game over här
-            if (!canPlaceAnywhere()) {
+            // Check for game over condition
+            if (!canPlaceAnyRotation()) {
                 gameOver();
             }
         };
@@ -538,6 +607,34 @@
             }
             return true;
         };
+        
+        const canPlaceAnyRotation = () => {
+            // Check current piece
+            for (let y = 0; y < boardSize; y++) {
+                for (let x = 0; x < boardSize; x++) {
+                    if (canPlacePiece(x, y, currentPiece)) {
+                        return true;
+                    }
+                }
+            }
+
+            // In Easy mode, also check all possible rotations
+            if (!isHardMode) {
+                for (let i = 1; i < 4; i++) {
+                    const rotated = rotatePiece(currentPiece, i);
+                    for (let y = 0; y < boardSize; y++) {
+                        for (let x = 0; x < boardSize; x++) {
+                            if (canPlacePiece(x, y, rotated)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        };
+        
 
         const placePiece = (startX, startY, piece) => {
             for (let y = 0; y < piece.length; y++) {
@@ -549,6 +646,14 @@
             }
             score += currentPieceSize;
             checkLines();
+            renderBoard();
+            
+            if (!canPlaceAnyRotation()) {
+                gameOver();
+            } else {
+                newPiece();
+            }
+            selectedPosition = null; 
         };
 
         const checkLines = () => {
@@ -611,34 +716,26 @@
             return rotated;
         };
         
-        const canPlaceAnywhere = () => {
-            for (let y = 0; y < boardSize; y++) {
-                for (let x = 0; x < boardSize; x++) {
-                    if (canPlacePiece(x, y, currentPiece)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        };
-
         const gameOver = () => {
             isGameRunning = false;
             finalScoreDisplay.textContent = score;
-            gameOverModal.style.display = "flex";
             
-            if (score > 0 && (topTenHighscores.length < 10 || score > topTenHighscores[topTenHighscores.length - 1].score)) {
+            const isNewHighscore = topTenHighscores.length < 10 || score > (topTenHighscores.length > 0 ? topTenHighscores[topTenHighscores.length - 1].score : 0);
+
+            if (isNewHighscore) {
                 document.getElementById("newHighScoreMessage").style.display = "block";
                 initialsEntryMode = true;
                 
                 setTimeout(() => {
-                    gameOverModal.style.display = "none";
-                    initialsModal.style.display = "flex";
+                    hideModals();
+                    initialsModal.classList.add('active');
                     selectedInitialIndex = 0; 
                     renderInitials();
                 }, 2000); 
             } else {
-                saveHighScore(score, "---"); 
+                saveHighScore(score, "---"); // Save the score even if not a top 10
+                hideModals();
+                gameOverModal.classList.add('active');
             }
         };
         
@@ -665,11 +762,12 @@
             const cells = Array.from(gameGridEl.children);
             cells.forEach(cell => cell.classList.remove('shadow', 'invalid-placement'));
             
-            // Visa ny skugga
-            if (currentPiece && canPlacePiece(x, y, currentPiece)) {
-                for (let py = 0; py < currentPiece.length; py++) {
-                    for (let px = 0; px < currentPiece[py].length; px++) {
-                        if (currentPiece[py][px] === 1) {
+            const pieceToPlace = !isHardMode && canPlacePiece(x, y, currentPiece) ? currentPiece : null;
+            
+            if (pieceToPlace) {
+                for (let py = 0; py < pieceToPlace.length; py++) {
+                    for (let px = 0; px < pieceToPlace[py].length; px++) {
+                        if (pieceToPlace[py][px] === 1) {
                             const cellIndex = (y + py) * boardSize + (x + px);
                             if (cellIndex < cells.length) {
                                 cells[cellIndex].classList.add('shadow');
@@ -677,12 +775,12 @@
                         }
                     }
                 }
-            } else if (currentPiece) {
+            } else {
                  for (let py = 0; py < currentPiece.length; py++) {
                     for (let px = 0; px < currentPiece[py].length; px++) {
                         if (currentPiece[py][px] === 1) {
                             const cellIndex = (y + py) * boardSize + (x + px);
-                             if (cellIndex < cells.length) {
+                            if (cellIndex < cells.length) {
                                 cells[cellIndex].classList.add('invalid-placement');
                             }
                         }
@@ -700,9 +798,6 @@
             
             if (canPlacePiece(x, y, currentPiece)) {
                 placePiece(x, y, currentPiece);
-                renderBoard();
-                newPiece();
-                selectedPosition = null; 
             }
         });
         
@@ -715,7 +810,7 @@
         });
         
         document.addEventListener('keydown', (e) => {
-            if (initialsModal.style.display === "flex") {
+            if (initialsModal.classList.contains('active')) {
                 e.preventDefault(); 
                 const charIndex = characterSet.indexOf(currentInitials[selectedInitialIndex]);
 
@@ -768,13 +863,14 @@
             const initials = currentInitials.join('');
             saveHighScore(score, initials);
             initialsEntryMode = false;
-            initialsModal.style.display = "none";
+            hideModals();
+            gameOverModal.classList.add('active'); // Show Game Over modal after saving
         });
         
-        // Initialisering
+        // Initial setup
         renderGrid(gameGridEl, boardSize);
         renderGrid(nextPieceGridEl, nextPieceSize);
-        getHighScores();
+        setupHighscoresListener();
     </script>
 </body>
 </html>
