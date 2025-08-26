@@ -305,7 +305,7 @@
 <body>
 
     <a href="index.html" class="back-button">Tillbaka till menyn</a>
-    <span class="version-tag">Ver 2.4</span>
+    <span class="version-tag">Ver 2.6</span>
 
     <div class="game-container">
         <div id="game-info">
@@ -390,31 +390,54 @@
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // --- FIREBASE SETUP ---
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        let userId = null;
+        let app, db, auth, userId = null;
         let topTenHighscores = [];
         let isAuthReady = false;
+        let highscoresCollectionRef = null;
 
-        // Log in anonymously to get a user ID
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                console.log("Firebase connected. User ID:", userId);
-                isAuthReady = true;
-            } else {
-                console.log("Firebase connected. Signing in anonymously...");
-                await signInAnonymously(auth);
+        const setupFirebase = async () => {
+            try {
+                // Initialize Firebase services first
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                // Now that 'db' is initialized, define the collection reference
+                highscoresCollectionRef = collection(db, "artifacts", appId, "public", "data", "highscores");
+
+                // Sign in with the provided token, or anonymously if not available
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Set up the real-time listener once auth is ready
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        console.log("Firebase connected. User ID:", userId);
+                        setupHighscoresListener();
+                    } else {
+                        isAuthReady = false;
+                        console.log("User is signed out.");
+                    }
+                });
+
+            } catch (e) {
+                console.error("Error setting up Firebase:", e);
             }
-        });
-
-        // Use onSnapshot for real-time updates and sort in-memory to avoid index issues.
-        const highscoresCollectionRef = collection(db, "artifacts", appId, "public", "data", "highscores");
-        const highscoresQuery = query(highscoresCollectionRef);
+        };
 
         const setupHighscoresListener = () => {
+             // Ensure highscoresCollectionRef is defined before using it
+             if (!highscoresCollectionRef) {
+                console.error("Highscores collection reference is not set up.");
+                return;
+             }
+
+             const highscoresQuery = query(highscoresCollectionRef);
              onSnapshot(highscoresQuery, (querySnapshot) => {
                 const scores = [];
                 querySnapshot.forEach((doc) => {
@@ -439,9 +462,13 @@
                 console.error("User ID is missing, cannot save highscore.");
                 return;
             }
+            if (!highscoresCollectionRef) {
+                console.error("Highscores collection reference is not set up, cannot save.");
+                return;
+            }
             try {
                 // Check if the score is actually a new high score
-                const isNewHighscore = topTenHighscores.length < 10 || newScore > topTenHighscores[topTenHighscores.length - 1].score;
+                const isNewHighscore = topTenHighscores.length < 10 || newScore > (topTenHighscores.length > 0 ? topTenHighscores[topTenHighscores.length - 1].score : 0);
                 
                 if (isNewHighscore) {
                     await addDoc(highscoresCollectionRef, {
@@ -870,7 +897,7 @@
         // Initial setup
         renderGrid(gameGridEl, boardSize);
         renderGrid(nextPieceGridEl, nextPieceSize);
-        setupHighscoresListener();
+        setupFirebase();
     </script>
 </body>
 </html>
